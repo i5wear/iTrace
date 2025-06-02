@@ -1,8 +1,14 @@
-﻿import iTrace;
+import iTrace;
 import "cubiomes/finders.h";
 using namespace std;
 using namespace numbers;
 
+// Simulate ender eye measurement, with exact error distribution.
+// First, strongholds are generated with the world seed.
+// Then, a random position and measurement error are picked.
+// Finally, the command for iTrace is generated to execute.
+// Only MC 1.9+ is supported intentionally, as is Ninjabrain Bot.
+// I've taken massive tests by this, which is impossible by myself.
 class Simulator {
 
 private:

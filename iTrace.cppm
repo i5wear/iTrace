@@ -63,39 +63,36 @@ protected:
 
 	struct EnderEyes {
 		struct eye { double PosX, PosZ, Yaw, Range; };
-		double Emean, Evar; vector<eye> data;
-		double calib(MCVersion Base, double PosX, double PosZ) {
+		mutable double Emean, Evar; vector<eye> data;
+		double calib(MCVersion Base, double PosX, double PosZ) const {
 			const Constants World(Base);
-			PosX = World.chunk * (floor(PosX / World.chunk) + 0.5);
-			PosZ = World.chunk * (floor(PosZ / World.chunk) + 0.5);
+			PosX = World.chunk * (floor(PosX / World.chunk) + 0.5) - World.PosMid;
+			PosZ = World.chunk * (floor(PosZ / World.chunk) + 0.5) - World.PosMid;
 			double Error = 0; Emean = 0, Evar = 0;
-			for (auto& eye : data) {
-				eye.PosX += World.PosMid, eye.PosZ += World.PosMid;
+			for (const auto& eye : data) {
 				Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
 				Emean += Error / data.size();
 				Evar += Error * Error / (data.size() - 1);
 				Evar -= eye.Range * eye.Range / (3 * data.size());
-				eye.PosX -= World.PosMid, eye.PosZ -= World.PosMid;
 			}
 			Evar -= Emean * Emean;
 			Evar = Evar > 0 ? sqrt(Evar) : 0;
 			return Error;
 		}
-		double solve(MCVersion Base, double PosX, double PosZ) {
+		double solve(MCVersion Base, double PosX, double PosZ) const {
 			const Constants World(Base); vector<pair<double, double>> cache;
-			PosX = World.chunk * (floor(PosX / World.chunk) + 0.5);
-			PosZ = World.chunk * (floor(PosZ / World.chunk) + 0.5);
-			double Radius = hypot(PosX, PosZ), Prob = 0;
-			for (const auto& ring : World.data)
-				if (Radius > ring.Rmin and Radius < ring.Rmax)
-					Prob = ring.Count * (ring.Rmax - ring.Rmin) / (Radius * World.chunk);
-			if (not Prob) return Prob;
+			PosX = World.chunk * (floor(PosX / World.chunk) + 0.5) - World.PosMid;
+			PosZ = World.chunk * (floor(PosZ / World.chunk) + 0.5) - World.PosMid;
+			double Prob = 0, Radius = hypot(PosX + World.PosMid, PosZ + World.PosMid);
 			double Dmin = +numeric_limits<double>::infinity();
 			double Dmax = -numeric_limits<double>::infinity();
-			for (auto& eye : data) {
-				eye.PosX += World.PosMid, eye.PosZ += World.PosMid;
-				Dmin = min(Dmin, hypot(eye.PosX, eye.PosZ) - hypot(PosX - eye.PosX, PosZ - eye.PosZ));
-				Dmax = max(Dmax, hypot(eye.PosX, eye.PosZ) + hypot(PosX - eye.PosX, PosZ - eye.PosZ));
+			for (const auto& ring : World.data)
+				if (Radius > ring.Rmin and Radius < ring.Rmax)
+					Prob = ring.Count * (ring.Rmax - ring.Rmin) / (World.chunk * Radius);
+			if (not Prob) return Prob;
+			for (const auto& eye : data) {
+				Dmin = min(Dmin, hypot(eye.PosX + World.PosMid, eye.PosZ + World.PosMid) - hypot(PosX - eye.PosX, PosZ - eye.PosZ));
+				Dmax = max(Dmax, hypot(eye.PosX + World.PosMid, eye.PosZ + World.PosMid) + hypot(PosX - eye.PosX, PosZ - eye.PosZ));
 				if (Evar > 0) {
 					double Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
 					double Emin = (Error - Emean - eye.Range) / (sqrt2 * Evar);
@@ -112,8 +109,9 @@ protected:
 					for (double Index = 1; Index < ring.Count; Index++) {
 						double Angle = 2 * pi * Index / ring.Count + atan2(PosZ, PosX);
 						for (const auto& eye : data) {
-							double Coeff = eye.PosX * cos(Angle) + eye.PosZ * sin(Angle);
-							double Delta = Radius * Radius + Coeff * Coeff - 2 * (PosX * eye.PosX + PosZ * eye.PosZ);
+							double Scale = (PosX + World.PosMid) * (eye.PosX + World.PosMid) + (PosZ + World.PosMid) * (eye.PosZ + World.PosMid);
+							double Coeff = (eye.PosX + World.PosMid) * cos(Angle) + (eye.PosZ + World.PosMid) * sin(Angle);
+							double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
 							if (Delta > 0) cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 						}
 						ranges::sort(cache);
@@ -133,8 +131,9 @@ protected:
 						for (double Index = 0; Index < ring.Count; Index++) {
 							double Angle = 2 * pi * (Index + Step / Count) / ring.Count;
 							for (const auto& eye : data) {
-								double Coeff = eye.PosX * cos(Angle) + eye.PosZ * sin(Angle);
-								double Delta = Radius * Radius + Coeff * Coeff - 2 * (PosX * eye.PosX + PosZ * eye.PosZ);
+								double Scale = (PosX + World.PosMid) * (eye.PosX + World.PosMid) + (PosZ + World.PosMid) * (eye.PosZ + World.PosMid);
+								double Coeff = (eye.PosX + World.PosMid) * cos(Angle) + (eye.PosZ + World.PosMid) * sin(Angle);
+								double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
 								if (Delta > 0) cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 							}
 							ranges::sort(cache);
@@ -151,8 +150,6 @@ protected:
 					Prob *= Psum;
 				}
 			}
-			for (auto& eye : data)
-				eye.PosX -= World.PosMid, eye.PosZ -= World.PosMid;
 			return Prob;
 		}
 	};
@@ -170,13 +167,12 @@ protected:
 			data.emplace_back(Target.pos.x, Target.pos.z, 1);
 			Xmean = Target.pos.x, Zmean = Target.pos.z, Xvar = 0, Zvar = 0;
 		}
-		Stronghold(MCVersion Base, EnderEyes Source) {
+		Stronghold(MCVersion Base, const EnderEyes& Source) {
 			const Constants World(Base); vector<str> cache;
 			auto order = [](const str& prev, const str& next)
 				{ return prev.Prob != next.Prob ? prev.Prob > next.Prob : prev.PosX != next.PosX ? prev.PosX < next.PosX : prev.PosZ < next.PosZ; };
-			for (auto& eye : Source.data) {
-				eye.PosX += World.PosMid, eye.PosZ += World.PosMid;
-				double Radius = hypot(eye.PosX, eye.PosZ);
+			for (const auto& eye : Source.data) {
+				double Radius = hypot(eye.PosX + World.PosMid, eye.PosZ + World.PosMid);
 				double Dmin = +numeric_limits<double>::infinity();
 				double Dmax = +numeric_limits<double>::infinity();
 				for (const auto& ring : World.data) {
@@ -188,8 +184,8 @@ protected:
 				double Amin = Angle - eye.Range - 4 * Source.Evar;
 				double Amax = Angle + eye.Range + 4 * Source.Evar;
 				double PosBox[] = { eye.PosX + Dmin * cos(Amin), eye.PosX + Dmax * cos(Amin), eye.PosX + Dmin * cos(Amax), eye.PosX + Dmax * cos(Amax) };
-				double Xmin = World.chunk * (round(ranges::min(PosBox) / World.chunk) + 0.5);
-				double Xmax = World.chunk * (round(ranges::max(PosBox) / World.chunk) + 0.5);
+				double Xmin = World.chunk * (round((ranges::min(PosBox) + World.PosMid) / World.chunk) + 0.5) - World.PosMid;
+				double Xmax = World.chunk * (round((ranges::max(PosBox) + World.PosMid) / World.chunk) + 0.5) - World.PosMid;
 				for (double PosX = Xmin; PosX < Xmax; PosX += World.chunk) {
 					double Zmin = +numeric_limits<double>::infinity();
 					double Zmax = -numeric_limits<double>::infinity();
@@ -209,20 +205,19 @@ protected:
 						Zmin = min(Zmin, eye.PosZ + Dmax / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
 						Zmax = max(Zmax, eye.PosZ + Dmax / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
 					}
-					Zmin = World.chunk * (round(Zmin / World.chunk) + 0.5);
-					Zmax = World.chunk * (round(Zmax / World.chunk) + 0.5);
+					Zmin = World.chunk * (round((Zmin + World.PosMid) / World.chunk) + 0.5) - World.PosMid;
+					Zmax = World.chunk * (round((Zmax + World.PosMid) / World.chunk) + 0.5) - World.PosMid;
 					for (double PosZ = Zmin; PosZ < Zmax; PosZ += World.chunk)
 						if (data.empty() or ranges::binary_search(data, str(PosX, PosZ, 0), order))
 							cache.emplace_back(PosX, PosZ, 0);
 				}
 				data.swap(cache), cache.clear();
-				eye.PosX -= World.PosMid, eye.PosZ -= World.PosMid;
 				if (data.empty()) break;
 			}
 			double Psum = 0; Xmean = 0, Zmean = 0, Xvar = 0, Zvar = 0;
 			for (auto& str : data) {
-				str.PosX += World.PosGen - 0.5 * World.chunk;
-				str.PosZ += World.PosGen - 0.5 * World.chunk;
+				str.PosX = World.chunk * floor(str.PosX / World.chunk) + World.PosGen;
+				str.PosZ = World.chunk * floor(str.PosZ / World.chunk) + World.PosGen;
 				str.Prob = Source.solve(Base, str.PosX, str.PosZ);
 				if (str.Prob > 0) {
 					Psum += str.Prob;
@@ -284,6 +279,7 @@ public:
 			regex("^ *ADD" VALUE VALUE VALUE " *$", regex::icase),
 			regex("^ */execute in minecraft:overworld run tp @s" VALUE VALUE VALUE VALUE VALUE " *$", regex::icase)
 		};
+		auto begin = chrono::high_resolution_clock::now();
 		size_t Index; smatch Value; string Output;
 		for (Index = 0; Index < size(Pattern); Index++)
 			if (regex_match(Input, Value, Pattern[Index])) break;
@@ -318,6 +314,8 @@ public:
 			if (not Target.data.empty())
 				Output += format("({0:.0f} ± {1:.0f}, {2:.0f} ± {3:.0f})\n", Target.Xmean, Target.Xvar, Target.Zmean, Target.Zvar);
 		}
+		auto end = chrono::high_resolution_clock::now();
+		Output += format("{0}\n", chrono::duration_cast<chrono::microseconds>(end - begin));
 		return Output;
 	}
 

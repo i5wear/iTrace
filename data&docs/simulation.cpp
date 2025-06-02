@@ -48,8 +48,8 @@ public:
 			if (Dist < Dmin)
 				Dmin = Dist, Yaw = remainder(Angle + Error, 360);
 		}
-		if (useDebug) return format("ADD {0:.2f} {1:.2f} {2:.1f}", PosX, PosZ, Yaw);
-		else return format("/execute in minecraft:overworld run tp @s {0:.2f} 256.00 {1:.2f} {2:.2f} -32.00", PosX, PosZ, Yaw);
+		if (useDebug) return format("ADD {0:.2f} {1:.2f} {2:.1f}", PosX + PosMid, PosZ + PosMid, Yaw);
+		else return format("/execute in minecraft:overworld run tp @s {0:.2f} 256.00 {1:.2f} {2:.2f} -32.00", PosX + PosMid, PosZ + PosMid, Yaw);
 	}
 
 	string calib(double Emean, double Evar, bool useDebug) {
@@ -64,14 +64,14 @@ public:
 			double Yaw = 0.1 * round(10 * remainder(Angle + Error, 360));
 			double Error = remainder(Yaw - Angle, 360);
 			Esum += Error * Error, Count++;
-			return format("ADD {0:.2f} {1:.2f} {2:.1f}", PosX, PosZ, Yaw);
+			return format("ADD {0:.2f} {1:.2f} {2:.1f}", PosX + PosMid, PosZ + PosMid, Yaw);
 		}
 		else {
 			double Angle = 180/pi * atan2(Target.PosZ - PosZ, Target.PosX - PosX) - 90;
 			double Yaw = 0.01 * round(100 * remainder(Angle + Error, 360));
 			double Error = remainder(Yaw - Angle, 360);
 			Esum += Error * Error, Count++;
-			return format("/execute in minecraft:overworld run tp @s {0:.2f} 256.00 {1:.2f} {2:.2f} -32.00", PosX, PosZ, Yaw);
+			return format("/execute in minecraft:overworld run tp @s {0:.2f} 256.00 {1:.2f} {2:.2f} -32.00", PosX + PosMid, PosZ + PosMid, Yaw);
 		}
 	}
 

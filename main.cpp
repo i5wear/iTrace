@@ -6,7 +6,7 @@ int main() try {
 	iTrace Instance; string Input;
 	for (ifstream file("history.log"); getline(file, Input); Instance(Input));
 	cout << Instance("CHECK") << endl;
-	ofstream("README.MD") << iTrace::Intro << endl;
+	ofstream("README.TXT") << iTrace::Intro << endl;
 	while (getline(cin, Input) and not Input.empty()) {
 		auto begin = high_resolution_clock::now();
 		string Output = Instance(Input);

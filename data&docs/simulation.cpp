@@ -1,5 +1,6 @@
 import iTrace;
 import "cubiomes/finders.h";
+import "cubiomes/util.h";
 using namespace std;
 using namespace numbers;
 
@@ -21,7 +22,7 @@ private:
 
 public:
 
-	Simulator(MCVersion Base, long long Seed) {
+	Simulator(int Base, long long Seed) {
 		static Generator World;
 		static StrongholdIter Target;
 		Esum = 0, Count = 0;
@@ -55,7 +56,7 @@ public:
 	}
 
 	string calib(double Emean, double Evar, bool Legacy) {
-		const auto& Target = Map[0];
+		const auto& Target{ Map[0] };
 		double Error = normal_distribution(Emean, Evar)(RNG);
 		double Angle = uniform_real_distribution(-pi, pi)(RNG);
 		double PosX = 0.01 * round(100 * (Target.PosX + 64 * cos(Angle))) - PosMid;
@@ -81,15 +82,17 @@ public:
 };
 
 int main() {
-	iTrace Instance; Simulator World{ MC_1_16, -1236314517 };
+	constexpr int Base = MC_1_16, Seed = -1236314517, Trial = 32;
+	constexpr double Emean = 0, Evar = 0.004;
+	iTrace Instance; Simulator World{ Base, Seed };
 	auto execute = [&Instance](const string& Input)
 		{ cout << Input << endl << Instance(Input) << endl; };
-	execute("VER 1.16"), execute("CAL -1236314517");
-	for (int i = 0; i < 32; i++)
-		execute(World.calib(0, 0.004, false));
-	execute("CAL 0"), execute("CLEAR"), execute("ERR 0 0.004");
-	cout << format("NB Standard Deviation: {0:.4f}", World.NBcalib()) << endl;
-	for (int i = 0; i < 32; i++)
-		execute(World.solve(0, 0.004, false)), execute("CLEAR");
+	execute(format("VER {0}", mc2str(Base))), execute(format("CAL {0}", Seed));
+	for (int i = 0; i < Trial; i++)
+		execute(World.calib(Emean, Evar, false));
+	cout << format("NB Standard Deviation: {0:.4f}\n", World.NBcalib()) << endl;
+	execute("CAL 0"), execute(format("ERR {0} {1}", Emean, Evar));
+	for (int i = 0; i < Trial; i++)
+		execute("CLEAR"), execute(World.solve(Emean, Evar, false));
 	system("PAUSE");
 }

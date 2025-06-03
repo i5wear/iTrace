@@ -16,8 +16,7 @@ int main() {
 	for (int Seed = Smin; Seed <= Smax; Seed++) {
 		if (Seed - Smin == Progress * (Smax - Smin) / 100) {
 			system("CLS");
-			cout << Progress << "%\n";
-			Progress++;
+			cout << format("{0}%\n", ++Progress);
 		}
 		setupGenerator(&World, Base, false);
 		applySeed(&World, DIM_OVERWORLD, Seed);
@@ -31,5 +30,4 @@ int main() {
 	for (int N = 0; N < (Rmax - Rmin) / Width; N++)
 		Output += format("{0},{1}\n", Rmin + N * Width, Function[N]);
 	ofstream("data.csv") << Output;
-	system("PAUSE");
 }

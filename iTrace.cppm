@@ -113,7 +113,7 @@ protected:
 							double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
 							if (Delta > 0) cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 						}
-						ranges::sort(cache);
+						ranges::sort(cache, less());
 						double Pmult = 1, Rmin = 0, Rmax = 0;
 						for (const auto& line : cache) {
 							Rmin = max(Rmax, line.first);
@@ -135,7 +135,7 @@ protected:
 								double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
 								if (Delta > 0) cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 							}
-							ranges::sort(cache);
+							ranges::sort(cache, less());
 							double Pmult = 1, Rmin = 0, Rmax = 0;
 							for (const auto& line : cache) {
 								Rmin = max(Rmax, line.first);
@@ -313,7 +313,7 @@ public:
 		}
 		else if (Seed) {
 			static default_random_engine RNG{ random_device()() };
-			const auto& Target = Stronghold(Base, Seed).data.front();
+			const auto& Target{ Stronghold(Base, Seed).data.front() };
 			double Error = Source.calib(Base, Target.PosX, Target.PosZ);
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
 			if (not Source.data.empty())

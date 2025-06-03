@@ -12,15 +12,15 @@ protected:
 	
 	struct Constants {
 		struct ring { double Rmin, Rmax, Count, *Distr; };
-		double chunk, PosGen, PosMid; vector<ring> data;
+		double Chunk, PosGen, PosMid; vector<ring> data;
 		static double table7[], table12[], table16[];
 		Constants(MCVersion Base) {
 			if (Base < MC_1_9) {
-				chunk = 16, PosGen = 4, PosMid = 4;
+				Chunk = 16, PosGen = 4, PosMid = 4;
 				data = { {460, 1332, 3, table7} };
 			}
 			else if (Base < MC_1_13) {
-				chunk = 16, PosGen = 4, PosMid = 0;
+				Chunk = 16, PosGen = 4, PosMid = 0;
 				data = {
 					{ 1228,  2868,  3, table12},
 					{ 4300,  5940,  6, table12},
@@ -33,7 +33,7 @@ protected:
 				};
 			}
 			else if (Base < MC_1_19) {
-				chunk = 16, PosGen = 4, PosMid = 0;
+				Chunk = 16, PosGen = 4, PosMid = 0;
 				data = {
 					{ 1228,  2868,  3, table16},
 					{ 4300,  5940,  6, table16},
@@ -46,7 +46,7 @@ protected:
 				};
 			}
 			else {
-				chunk = 16, PosGen = 4, PosMid = 8;
+				Chunk = 16, PosGen = 4, PosMid = 8;
 				data = {
 					{ 1228,  2868,  3, table16},
 					{ 4300,  5940,  6, table16},
@@ -61,13 +61,13 @@ protected:
 		}
 	};
 
-	struct EnderEyes {
+	struct Endereyes {
 		struct eye { double PosX, PosZ, Yaw, Range; };
 		mutable double Emean, Evar; vector<eye> data;
 		double calib(MCVersion Base, double PosX, double PosZ) const {
 			const Constants World(Base);
-			PosX = World.chunk * (floor(PosX / World.chunk) + 0.5) - World.PosMid;
-			PosZ = World.chunk * (floor(PosZ / World.chunk) + 0.5) - World.PosMid;
+			PosX = World.Chunk * (floor(PosX / World.Chunk) + 0.5) - World.PosMid;
+			PosZ = World.Chunk * (floor(PosZ / World.Chunk) + 0.5) - World.PosMid;
 			double Error = 0; Emean = 0, Evar = 0;
 			for (const auto& eye : data) {
 				Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
@@ -81,14 +81,14 @@ protected:
 		}
 		double solve(MCVersion Base, double PosX, double PosZ) const {
 			const Constants World(Base); vector<pair<double, double>> cache;
-			PosX = World.chunk * (floor(PosX / World.chunk) + 0.5) - World.PosMid;
-			PosZ = World.chunk * (floor(PosZ / World.chunk) + 0.5) - World.PosMid;
+			PosX = World.Chunk * (floor(PosX / World.Chunk) + 0.5) - World.PosMid;
+			PosZ = World.Chunk * (floor(PosZ / World.Chunk) + 0.5) - World.PosMid;
 			double Prob = 0, Radius = hypot(PosX + World.PosMid, PosZ + World.PosMid);
 			double Dmin = +numeric_limits<double>::infinity();
 			double Dmax = -numeric_limits<double>::infinity();
 			for (const auto& ring : World.data)
 				if (Radius > ring.Rmin and Radius < ring.Rmax)
-					Prob = ring.Count * (ring.Rmax - ring.Rmin) / (World.chunk * Radius);
+					Prob = ring.Count * (ring.Rmax - ring.Rmin) / (World.Chunk * Radius);
 			if (not Prob) return Prob;
 			for (const auto& eye : data) {
 				Dmin = min(Dmin, hypot(eye.PosX + World.PosMid, eye.PosZ + World.PosMid) - hypot(PosX - eye.PosX, PosZ - eye.PosZ));
@@ -101,11 +101,11 @@ protected:
 				}
 			}
 			for (const auto& ring : World.data) {
-				double Count = round(pi * (ring.Rmin + ring.Rmax) / (World.chunk * ring.Count));
+				double Count = round(pi * (ring.Rmin + ring.Rmax) / (World.Chunk * ring.Count));
 				auto Distr = [&ring](double Radius)
 					{ return Radius < ring.Rmax ? Radius < ring.Rmin ? 0 : ring.Distr[size_t(Radius - ring.Rmin)] : 1; };
 				if (Radius > ring.Rmin and Radius < ring.Rmax) {
-					Prob *= Distr(Radius + 0.5 * World.chunk) - Distr(Radius - 0.5 * World.chunk);
+					Prob *= Distr(Radius + 0.5 * World.Chunk) - Distr(Radius - 0.5 * World.Chunk);
 					for (double Index = 1; Index < ring.Count; Index++) {
 						double Angle = 2 * pi * Index / ring.Count + atan2(PosZ, PosX);
 						for (const auto& eye : data) {
@@ -167,7 +167,7 @@ protected:
 			data.emplace_back(Target.pos.x, Target.pos.z, 1);
 			Xmean = Target.pos.x, Zmean = Target.pos.z, Xvar = 0, Zvar = 0;
 		}
-		Stronghold(MCVersion Base, const EnderEyes& Source) {
+		Stronghold(MCVersion Base, const Endereyes& Source) {
 			const Constants World(Base); vector<str> cache;
 			auto order = [](const str& prev, const str& next)
 				{ return prev.Prob != next.Prob ? prev.Prob > next.Prob : prev.PosX != next.PosX ? prev.PosX < next.PosX : prev.PosZ < next.PosZ; };
@@ -184,9 +184,9 @@ protected:
 				double Amin = Angle - eye.Range - 4 * Source.Evar;
 				double Amax = Angle + eye.Range + 4 * Source.Evar;
 				double PosBox[] = { eye.PosX + Dmin * cos(Amin), eye.PosX + Dmax * cos(Amin), eye.PosX + Dmin * cos(Amax), eye.PosX + Dmax * cos(Amax) };
-				double Xmin = World.chunk * (round((ranges::min(PosBox) + World.PosMid) / World.chunk) + 0.5) - World.PosMid;
-				double Xmax = World.chunk * (round((ranges::max(PosBox) + World.PosMid) / World.chunk) + 0.5) - World.PosMid;
-				for (double PosX = Xmin; PosX < Xmax; PosX += World.chunk) {
+				double Xmin = World.Chunk * (round((ranges::min(PosBox) + World.PosMid) / World.Chunk) + 0.5) - World.PosMid;
+				double Xmax = World.Chunk * (round((ranges::max(PosBox) + World.PosMid) / World.Chunk) + 0.5) - World.PosMid;
+				for (double PosX = Xmin; PosX < Xmax; PosX += World.Chunk) {
 					double Zmin = +numeric_limits<double>::infinity();
 					double Zmax = -numeric_limits<double>::infinity();
 					if (PosX > min(PosBox[0], PosBox[1]) and PosX < max(PosBox[0], PosBox[1])) {
@@ -205,9 +205,9 @@ protected:
 						Zmin = min(Zmin, eye.PosZ + Dmax / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
 						Zmax = max(Zmax, eye.PosZ + Dmax / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
 					}
-					Zmin = World.chunk * (round((Zmin + World.PosMid) / World.chunk) + 0.5) - World.PosMid;
-					Zmax = World.chunk * (round((Zmax + World.PosMid) / World.chunk) + 0.5) - World.PosMid;
-					for (double PosZ = Zmin; PosZ < Zmax; PosZ += World.chunk)
+					Zmin = World.Chunk * (round((Zmin + World.PosMid) / World.Chunk) + 0.5) - World.PosMid;
+					Zmax = World.Chunk * (round((Zmax + World.PosMid) / World.Chunk) + 0.5) - World.PosMid;
+					for (double PosZ = Zmin; PosZ < Zmax; PosZ += World.Chunk)
 						if (data.empty() or ranges::binary_search(data, str(PosX, PosZ, 0), order))
 							cache.emplace_back(PosX, PosZ, 0);
 				}
@@ -216,8 +216,8 @@ protected:
 			}
 			double Psum = 0; Xmean = 0, Zmean = 0, Xvar = 0, Zvar = 0;
 			for (auto& str : data) {
-				str.PosX = World.chunk * floor(str.PosX / World.chunk) + World.PosGen;
-				str.PosZ = World.chunk * floor(str.PosZ / World.chunk) + World.PosGen;
+				str.PosX = World.Chunk * floor(str.PosX / World.Chunk) + World.PosGen;
+				str.PosZ = World.Chunk * floor(str.PosZ / World.Chunk) + World.PosGen;
 				str.Prob = Source.solve(Base, str.PosX, str.PosZ);
 				if (str.Prob > 0) {
 					Psum += str.Prob;
@@ -243,30 +243,44 @@ private:
 	
 	long long Seed{ false };
 
-	EnderEyes Source{ 0, pi/18000 };
+	Endereyes Source{ 0, pi/18000 };
 
 public:
 
 	static constexpr char Intro[]{
 		"# [iTrace](https://github.com/i5wear/iTrace)\n\n"
-		"适用于多种场合的要塞计算器，由 i5wear 制作。\n\n"
-		"基于准确的数学模型，其结果置信度不低于任何同类产品。\n\n"
-		"本产品的研发和制作基于世界生成算法库 [Cubiomes](https://github.com/Cubitect/Cubiomes)。\n\n"
-		"#### 使用帮助\n\n"
-		"程序首次运行时，请先设定游戏版本，并设定误差或开始误差校准。\n\n"
-		"对准末影之眼按 F3 + C，直接粘贴至本程序，即可快捷输入数据。\n\n"
-		"若上述方式无法使用，则按下 F3，手动输入坐标和角度至本程序。\n\n"
-		"正常创建一个世界，获取种子并粘贴至本程序，即可开始误差校准。\n\n"
-		"终止本程序不会丢失任何数据，所有历史输入均被自动保存与读取。\n\n"
-		"#### 命令列表\n\n"
-		"添加末影之眼：ADD [X] [Z] [Yaw]\n\n"
-		"设定游戏版本：VER 1.[N]\n\n"
-		"设定测量误差：ERR [Mean] [SD]\n\n"
-		"开始误差校准：CAL [Seed]\n\n"
-		"终止误差校准：CAL 0\n\n"
-		"查看所有数据：CHECK\n\n"
-		"清除所有数据：CLEAR\n\n"
-		"终止程序运行：空输入"
+		"高精度的要塞计算器，由 i5wear 制作。\n"
+		"An accurate stronghold calculator made by i5wear.\n\n"
+		"其研发基于要塞生成的所有细节及 [Cubiomes](https://github.com/Cubitect/Cubiomes)。\n"
+		"Its development is based on all details of stronghold generation and [Cubiomes](https://github.com/Cubitect/Cubiomes).\n\n"
+		"#### 使用帮助 User Guide\n\n"
+		"首次使用本程序时，请先设定游戏版本，并设定误差或开始误差校准。\n"
+		"If it's the first time to use, set the game version, then set error or start error calibration.\n\n"
+		"对准末影之眼按下 F3 + C，直接粘贴至本程序，即可快捷输入数据。\n"
+		"Aim at an ender eye and press F3 + C, then directly paste into the program for quick input.\n\n"
+		"若上述方式无法使用，则按下 F3，手动输入坐标和角度至本程序。\n"
+		"If the method is unavailable, press F3 and manually input positions and yaw into the program.\n\n"
+		"正常创建一个世界，获取种子并粘贴至本程序，即可开始误差校准。\n"
+		"Create a world as normal, get the seed and paste it into the program to begin calibration.\n\n"
+		"终止本程序不会丢失任何数据，所有历史输入均被自动保存与读取。\n"
+		"Exit won't cause any data loss, as all historical inputs are automatically saved and loaded.\n\n"
+		"#### 命令列表 Command List\n\n"
+		"添加末影之眼：ADD [X坐标] [Z坐标] [偏航角]\n"
+		"Add an ender eye: ADD [PosX] [PosZ] [Yaw]\n\n"
+		"设定游戏版本：VER [1.N]\n"
+		"Set game version: VER [1.N]\n\n"
+		"设定误差数值：ERR [平均数] [标准差]\n"
+		"Set error value: ERR [Mean] [SD]\n\n"
+		"开始误差校准：CAL [种子]\n"
+		"Begin calibration: CAL [Seed]\n\n"
+		"终止误差校准：CAL 0\n"
+		"End calibration: CAL 0\n\n"
+		"查看所有数据：CHECK\n"
+		"Check all data: CHECK\n\n"
+		"清除所有数据：CLEAR\n"
+		"Clear all data: CLEAR\n\n"
+		"终止程序运行：空输入\n"
+		"Exit program: Empty input"
 	};
 
 	string operator()(const string& Input) {
@@ -279,7 +293,6 @@ public:
 			regex("^ *ADD" VALUE VALUE VALUE " *$", regex::icase),
 			regex("^ */execute in minecraft:overworld run tp @s" VALUE VALUE VALUE VALUE VALUE " *$", regex::icase)
 		};
-		auto begin = chrono::high_resolution_clock::now();
 		size_t Index; smatch Value; string Output;
 		for (Index = 0; Index < size(Pattern); Index++)
 			if (regex_match(Input, Value, Pattern[Index])) break;
@@ -314,8 +327,6 @@ public:
 			if (not Target.data.empty())
 				Output += format("({0:.0f} ± {1:.0f}, {2:.0f} ± {3:.0f})\n", Target.Xmean, Target.Xvar, Target.Zmean, Target.Zvar);
 		}
-		auto end = chrono::high_resolution_clock::now();
-		Output += format("{0}\n", chrono::duration_cast<chrono::microseconds>(end - begin));
 		return Output;
 	}
 

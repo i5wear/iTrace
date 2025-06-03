@@ -15,6 +15,8 @@ private:
 
 	struct { double PosX, PosZ; } Map[128];
 
+	default_random_engine RNG;
+
 	double Esum, Count, PosMid;
 
 public:
@@ -23,6 +25,7 @@ public:
 		static Generator World;
 		static StrongholdIter Target;
 		Esum = 0, Count = 0;
+		RNG.seed(random_device()());
 		PosMid = Base < MC_1_19 ? 4 : -4;
 		setupGenerator(&World, Base, false);
 		applySeed(&World, DIM_OVERWORLD, Seed);
@@ -34,32 +37,30 @@ public:
 		}
 	}
 
-	string solve(double Emean, double Evar, bool useDebug) {
-		static default_random_engine RNG(time(nullptr));
+	string solve(double Emean, double Evar, bool Legacy) {
 		double Error = normal_distribution(Emean, Evar)(RNG);
 		double Angle = uniform_real_distribution(-pi, pi)(RNG);
 		double Radius = uniform_int_distribution(0, 24000)(RNG);
 		double PosX = 0.01 * round(100 * Radius * cos(Angle)) - PosMid;
 		double PosZ = 0.01 * round(100 * Radius * sin(Angle)) - PosMid;
-		double Yaw = 0, Dmin = numeric_limits<double>::max();
+		double Yaw = numeric_limits<double>::quiet_NaN();
+		double Dmin = +numeric_limits<double>::infinity();
 		for (const auto& str : Map) {
 			double Dist = hypot(PosX - str.PosX, PosZ - str.PosZ);
 			double Angle = 180/pi * atan2(str.PosZ - PosZ, str.PosX - PosX) - 90;
-			if (Dist < Dmin)
-				Dmin = Dist, Yaw = remainder(Angle + Error, 360);
+			if (Dist < Dmin) Dmin = Dist, Yaw = remainder(Angle + Error, 360);
 		}
-		if (useDebug) return format("ADD {0:.2f} {1:.2f} {2:.1f}", PosX + PosMid, PosZ + PosMid, Yaw);
+		if (Legacy) return format("ADD {0:.2f} {1:.2f} {2:.1f}", PosX + PosMid, PosZ + PosMid, Yaw);
 		else return format("/execute in minecraft:overworld run tp @s {0:.2f} 256.00 {1:.2f} {2:.2f} -32.00", PosX + PosMid, PosZ + PosMid, Yaw);
 	}
 
-	string calib(double Emean, double Evar, bool useDebug) {
-		static default_random_engine RNG(time(nullptr));
+	string calib(double Emean, double Evar, bool Legacy) {
 		const auto& Target = Map[0];
 		double Error = normal_distribution(Emean, Evar)(RNG);
 		double Angle = uniform_real_distribution(-pi, pi)(RNG);
 		double PosX = 0.01 * round(100 * (Target.PosX + 64 * cos(Angle))) - PosMid;
 		double PosZ = 0.01 * round(100 * (Target.PosZ + 64 * sin(Angle))) - PosMid;
-		if (useDebug) {
+		if (Legacy) {
 			double Angle = 180/pi * atan2(Target.PosZ - PosZ, Target.PosX - PosX) - 90;
 			double Yaw = 0.1 * round(10 * remainder(Angle + Error, 360));
 			double Error = remainder(Yaw - Angle, 360);
@@ -80,8 +81,9 @@ public:
 };
 
 int main() {
-	iTrace Instance; Simulator World(MC_1_16, -1236314517);
-	auto execute = [&Instance](const string& Input) { cout << Input << endl << Instance(Input) << endl; };
+	iTrace Instance; Simulator World{ MC_1_16, -1236314517 };
+	auto execute = [&Instance](const string& Input)
+		{ cout << Input << endl << Instance(Input) << endl; };
 	execute("VER 1.16"), execute("CAL -1236314517");
 	for (int i = 0; i < 32; i++)
 		execute(World.calib(0, 0.004, false));

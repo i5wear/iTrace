@@ -1,34 +1,34 @@
 # [iTrace](https://github.com/i5wear/iTrace)
 
-高精度的要塞计算器，由 i5wear 制作。
+高精度的要塞计算器，改进了 Ninjabrain Bot 的算法。
 
 其研发基于要塞生成的所有细节，它们均来自 [Cubiomes](https://github.com/Cubitect/Cubiomes)。
 
-An accurate stronghold calculator made by i5wear.
+An accurate stronghold calculator, which improved the algorithm of Ninjabrain Bot.
 
-Its development is based on all details of stronghold generation, which are all from [Cubiomes](https://github.com/Cubitect/Cubiomes).
+Its development is based on all details of stronghold generation that come from [Cubiomes](https://github.com/Cubitect/Cubiomes).
 
 #### 使用帮助 User Guide
 
-首次使用本程序时，请先设定游戏版本，并设定误差或开始误差校准。
+首次使用时，请先设定游戏版本，并设定误差或开始误差校准。
 
-对准末影之眼按下 F3 + C，直接粘贴至本程序，即可快捷输入数据。
+对准末影之眼按下 F3 + C，直接将其粘贴，即可快捷输入数据。
 
-若上述方式无法使用，则按下 F3，手动输入坐标和角度至本程序。
+若上述方式无法使用，则应按下 F3，并手动输入坐标和角度。
 
-正常创建一个世界，获取种子并粘贴至本程序，即可开始误差校准。
+正常创建一个世界，获取种子并将其粘贴，即可开始误差校准。
 
-终止本程序不会丢失任何数据，所有历史输入均被自动保存与读取。
+退出程序不会丢失任何数据，所有输入均被自动保存与读取。
 
-If it's the first time to use, set the game version, then set error or start error calibration.
+At the first time to use, set the game version, then set error or start calibration.
 
-Aim at an ender eye and press F3 + C, then directly paste into the program for quick input.
+Aim at an ender eye and press F3 + C, then paste it directly for quick data input.
 
-If the method is unavailable, press F3 and manually input positions and yaw into the program.
+If this method is unavailable, press F3 and input positions and angle manuallly.
 
-Create a world as normal, get the seed and paste it into the program to begin calibration.
+Create a world as normal, get the seed and paste it to begin error calibration.
 
-Exit won't cause any data loss, as all historical inputs are automatically saved and loaded.
+Exit program does not cause any data loss, as all inputs are auto saved and loaded.
 
 #### 命令列表 Command List
 

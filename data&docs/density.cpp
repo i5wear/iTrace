@@ -5,9 +5,9 @@ using namespace std;
 // Measure the probability density of stronghold, with 30M samples.
 // Since calculation for MC 1.18+ is very slow, it's reduced to 3M samples.
 // Only take radius as the factor, while angle is discarded for simplicity.
-// Cluster MC versions into different groups by the measurement data.
+// Cluster game versions into different groups by the measurement data.
 // Also take 'global' tests, to prove each ring shares the same distribution.
-// Tested version 1.0, 1.9, 1.11, 1.12, 1.13, 1.15, 1.17 and 1.20.
+// Tested final versions of 1.0, 1.9, 1.11, 1.12, 1.13, 1.15, 1.17 and 1.20.
 int main() {
 	constexpr int Base = MC_1_20, Rmin = 1200, Rmax = 2880, Width = 16, Smin = 1, Smax = 1E6, Trial = 3;
 	static Generator World;

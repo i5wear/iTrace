@@ -2,7 +2,7 @@
 
 高精度的要塞计算器，改进了 Ninjabrain Bot 的算法。
 
-其研发基于要塞生成的所有细节，它们均来自 [Cubiomes](https://github.com/Cubitect/Cubiomes)。
+其研发基于要塞生成的所有细节，均来自 [Cubiomes](https://github.com/Cubitect/Cubiomes)。
 
 An accurate stronghold calculator, which improved the algorithm of Ninjabrain Bot.
 
@@ -26,9 +26,9 @@ Aim at an ender eye and press F3 + C, then paste it directly for quick data inpu
 
 If this method is unavailable, press F3 and input positions and angle manuallly.
 
-Create a world as normal, get the seed and paste it to begin error calibration.
+Create a world as normal, get the seed and paste it to start error calibration.
 
-Exit program does not cause any data loss, as all inputs are auto saved and loaded.
+Program exit does not cause any data loss, as all inputs are auto saved and loaded.
 
 #### 命令列表 Command List
 
@@ -54,9 +54,9 @@ Set game version: VER [1.N]
 
 Set error value: ERR [Mean] [SD]
 
-Begin calibration: CAL [Seed]
+Start calibration: CAL [Seed]
 
-End calibration: CAL 0
+Stop calibration: CAL 0
 
 Check all data: CHECK
 

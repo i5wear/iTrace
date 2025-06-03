@@ -5,7 +5,7 @@ using namespace std;
 // Measure the cumulative distribution of stronghold, with 100M samples.
 // Only take radius as the factor, while angle is discarded for simplicity.
 // Each ring shares the same distribution, as proven in previous density tests.
-// Also MC version has been clustered into group 1.0-1.8, 1.9-1.12 and 1.13-since.
+// Also versions have been clustered into group 1.0-1.8, 1.9-1.12 and 1.13-since.
 // The measurement data are directly used in iTrace in raw. I think it works well.
 // Tested version 1.7.10, 1.12.2 and 1.16.5, which represents each group.
 int main() {

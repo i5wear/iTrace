@@ -11,8 +11,7 @@ int main() try {
 		auto begin = high_resolution_clock::now();
 		string Output = Instance(Input);
 		auto end = high_resolution_clock::now();
-		Output += format("{0}\n", duration_cast<microseconds>(end - begin));
-		cout << Output << endl;
+		cout << Output << format("{0}\n", duration_cast<microseconds>(end - begin)) << endl;
 		ofstream("history.log", ios::app) << Input << endl;
 	}
 }

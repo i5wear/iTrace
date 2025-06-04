@@ -69,15 +69,12 @@ protected:
 			PosZ = Base.Chunk * (floor(PosZ / Base.Chunk) + 0.5) - Base.PosMid;
 			double Error = 0, Esum = 0, Esum2 = 0;
 			for (const auto& eye : data) {
-				Esum += remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
+				Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
+				Esum += Error / data.size(), Esum2 += Error * Error / (data.size() - 1);
 				Esum2 -= eye.Range * eye.Range / (3 * data.size());
 			}
-			Emean = Esum / data.size();
-			for (const auto& eye : data) {
-				Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
-				Esum2 += (Error - Emean) * (Error - Emean) / (data.size() - 1);
-			}
-			Evar = Esum2 > 0 ? sqrt(Esum2) : 0;
+			Esum2 -= Esum * Esum * data.size() / (data.size() - 1);
+			Emean = Esum, Evar = Esum2 > 0 ? sqrt(Esum2) : 0;
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
@@ -114,7 +111,7 @@ protected:
 							double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
 							if (Delta > 0) cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 						}
-						ranges::sort(cache);
+						ranges::sort(cache, ranges::less());
 						double Pmult = 1, Rmax = -numeric_limits<double>::infinity();
 						for (const auto& line : cache) {
 							Pmult -= Distr(max(Rmax, line.second)) - Distr(max(Rmax, line.first));
@@ -135,7 +132,7 @@ protected:
 								double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
 								if (Delta > 0) cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 							}
-							ranges::sort(cache);
+							ranges::sort(cache, ranges::less());
 							double Pmult = 1, Rmax = -numeric_limits<double>::infinity();
 							for (const auto& line : cache) {
 								Pmult -= Distr(max(Rmax, line.second)) - Distr(max(Rmax, line.first));
@@ -154,7 +151,7 @@ protected:
 
 	struct Stronghold {
 		struct str { double PosX, PosZ, Prob; };
-		double Xmean, Zmean, Xvar, Zvar; vector<str> data;
+		double Xmean, Xvar, Zmean, Zvar; vector<str> data;
 		Stronghold(MCVersion Base, long long Seed) {
 			thread_local Generator World;
 			thread_local StrongholdIter Target;
@@ -163,7 +160,8 @@ protected:
 			initFirstStronghold(&Target, Base, Seed);
 			nextStronghold(&Target, &World);
 			data.emplace_back(Target.pos.x, Target.pos.z, 1);
-			Xmean = Target.pos.x, Zmean = Target.pos.z, Xvar = 0, Zvar = 0;
+			Xmean = Target.pos.x, Xvar = 0;
+			Zmean = Target.pos.z, Zvar = 0;
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
 			thread_local vector<str> cache;
@@ -210,22 +208,21 @@ protected:
 							cache.emplace_back(PosX, PosZ, 0);
 				}
 				data.swap(cache), cache.clear();
-				if (data.empty()) return;
+				if (data.empty()) break;
 			}
-			double Xsum = 0, Zsum = 0, Psum = 0, Xsum2 = 0, Zsum2 = 0;
-			for (auto& str : data) {
+			double Xsum = 0, Xsum2 = 0, Zsum = 0, Zsum2 = 0, Psum = 0;
+			for (volatile auto& str : data) {
 				str.PosX = Base.Chunk * floor(str.PosX / Base.Chunk) + Base.PosGen;
 				str.PosZ = Base.Chunk * floor(str.PosZ / Base.Chunk) + Base.PosGen;
-				str.Prob = Source.solve(Base, str.PosX, str.PosZ);
-				Xsum += str.Prob * str.PosX, Zsum += str.Prob * str.PosZ, Psum += str.Prob;
+				str.Prob = Source.solve(Base, str.PosX, str.PosZ), Psum += str.Prob;
 			}
-			Xmean = Xsum / Psum, Zmean = Zsum / Psum;
 			for (const auto& str : data) {
-				Xsum2 += str.Prob * (str.PosX - Xmean) * (str.PosX - Xmean);
-				Zsum2 += str.Prob * (str.PosZ - Zmean) * (str.PosZ - Zmean);
+				Xsum += str.PosX * str.Prob / Psum, Xsum2 += str.PosX * str.PosX * str.Prob / Psum;
+				Zsum += str.PosZ * str.Prob / Psum, Zsum2 += str.PosZ * str.PosZ * str.Prob / Psum;
 				if (str.Prob > 0) cache.emplace_back(str.PosX, str.PosZ, str.Prob / Psum);
 			}
-			Xvar = sqrt(Xsum2 / Psum), Zvar = sqrt(Zsum2 / Psum);
+			Xmean = Xsum, Xvar = sqrt(Xsum2 - Xsum * Xsum);
+			Zmean = Zsum, Zvar = sqrt(Zsum2 - Zsum * Zsum);
 			data.swap(cache), cache.clear(), ranges::sort(data, order);
 		}
 	};
@@ -311,7 +308,7 @@ public:
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
 			if (not Source.data.empty())
 				Output += format("ERR: {0:.4f}  Mean: {1:.4f}  SD: {2:.4f}\n", 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Evar);
-			Output += format("#{0}: /tp {1:.2f} 256 {2:.2f}\n", Source.data.size() + 1, Target.PosX + 64 * cos(Angle), Target.PosZ + 64 * sin(Angle));
+			Output += format("#{0}: /tp {1:.2f} 250 {2:.2f}\n", Source.data.size() + 1, Target.PosX + 60 * cos(Angle), Target.PosZ + 60 * sin(Angle));
 		}
 		else if (not Source.data.empty()) {
 			Stronghold Target{ Base, Source };

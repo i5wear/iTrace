@@ -51,15 +51,15 @@ public:
 			if (Dist < Dmin) Dmin = Dist, Yaw = remainder(Angle + Error, 360);
 		}
 		if (Legacy) return format("ADD {0:.2f} {1:.2f} {2:.1f}", PosX + PosMid, PosZ + PosMid, Yaw);
-		else return format("/execute in minecraft:overworld run tp @s {0:.2f} 256.00 {1:.2f} {2:.2f} -32.00", PosX + PosMid, PosZ + PosMid, Yaw);
+		else return format("/execute in minecraft:overworld run tp @s {0:.2f} 250.00 {1:.2f} {2:.2f} -32.00", PosX + PosMid, PosZ + PosMid, Yaw);
 	}
 
 	string calib(double Emean, double Evar, bool Legacy) {
 		const auto& Target{ data[0] };
 		double Error = normal_distribution(Emean, Evar)(RNG);
 		double Angle = uniform_real_distribution(-pi, pi)(RNG);
-		double PosX = 0.01 * round(100 * (Target.PosX + 64 * cos(Angle))) - PosMid;
-		double PosZ = 0.01 * round(100 * (Target.PosZ + 64 * sin(Angle))) - PosMid;
+		double PosX = 0.01 * round(100 * (Target.PosX + 60 * cos(Angle))) - PosMid;
+		double PosZ = 0.01 * round(100 * (Target.PosZ + 60 * sin(Angle))) - PosMid;
 		if (Legacy) {
 			double Angle = 180/pi * atan2(Target.PosZ - PosZ, Target.PosX - PosX) - 90;
 			double Yaw = 0.1 * round(10 * remainder(Angle + Error, 360));
@@ -72,7 +72,7 @@ public:
 			double Yaw = 0.01 * round(100 * remainder(Angle + Error, 360));
 			double Error = remainder(Yaw - Angle, 360);
 			Esum2 += Error * Error, Count++;
-			return format("/execute in minecraft:overworld run tp @s {0:.2f} 256.00 {1:.2f} {2:.2f} -32.00", PosX + PosMid, PosZ + PosMid, Yaw);
+			return format("/execute in minecraft:overworld run tp @s {0:.2f} 250.00 {1:.2f} {2:.2f} -32.00", PosX + PosMid, PosZ + PosMid, Yaw);
 		}
 	}
 
@@ -81,7 +81,7 @@ public:
 };
 
 int main() {
-	constexpr int Base = MC_1_16, Seed = -1236314517, Trial = 32;
+	constexpr int Base = MC_1_16, Seed = -1236314517, Trial = 30;
 	constexpr double Emean = 0, Evar = 0.004;
 	iTrace Instance; Simulator World{ Base, Seed };
 	auto execute = [&Instance](const string& Input)

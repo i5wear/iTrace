@@ -10,8 +10,7 @@ using namespace std;
 // Tested version 1.7.10, 1.12.2 and 1.16.5, which represents each group.
 int main() {
 	constexpr int Base = MC_1_16, Rmin = 1200, Rmax = 2880, Width = 1, Smin = 1, Smax = 1E8, Trial = 1;
-	static Generator World;
-	static StrongholdIter Target;
+	Generator World; StrongholdIter Target;
 	int Progress = 0, Function[(Rmax - Rmin) / Width]{ 0 };
 	for (int Seed = Smin; Seed <= Smax; Seed++) {
 		if (Seed - Smin == Progress * (Smax - Smin) / 100)
@@ -21,7 +20,8 @@ int main() {
 		initFirstStronghold(&Target, Base, Seed);
 		for (int i = 0; i < Trial; i++) {
 			nextStronghold(&Target, &World);
-			for(int N = (hypot(Target.pos.x + 4, Target.pos.z + 4) - Rmin) / Width; N < (Rmax - Rmin) / Width; N++)
+			int Radius = hypot(Target.pos.x + 4, Target.pos.z + 4);
+			for(int N = (Radius - Rmin) / Width; N < (Rmax - Rmin) / Width; N++)
 				Function[N]++;
 		}
 	}

@@ -65,30 +65,32 @@ protected:
 		struct eye { double PosX, PosZ, Yaw, Range; };
 		mutable double Emean, Evar; vector<eye> data;
 		double calib(const Constants& Base, double PosX, double PosZ) const {
-			double Error = 0; Emean = 0, Evar = 0;
 			PosX = Base.Chunk * (floor(PosX / Base.Chunk) + 0.5) - Base.PosMid;
 			PosZ = Base.Chunk * (floor(PosZ / Base.Chunk) + 0.5) - Base.PosMid;
+			double Error = 0, Esum = 0, Esum2 = 0;
+			for (const auto& eye : data) {
+				Esum += remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
+				Esum2 -= eye.Range * eye.Range / (3 * data.size());
+			}
+			Emean = Esum / data.size();
 			for (const auto& eye : data) {
 				Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
-				Emean += Error / data.size();
-				Evar += Error * Error / (data.size() - 1);
-				Evar -= eye.Range * eye.Range / (3 * data.size());
+				Esum2 += (Error - Emean) * (Error - Emean) / (data.size() - 1);
 			}
-			Evar -= Emean * Emean;
-			Evar = Evar > 0 ? sqrt(Evar) : 0;
+			Evar = Esum2 > 0 ? sqrt(Esum2) : 0;
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
-			static vector<pair<double, double>> cache;
+			thread_local vector<pair<double, double>> cache;
 			PosX = Base.Chunk * (floor(PosX / Base.Chunk) + 0.5) - Base.PosMid;
 			PosZ = Base.Chunk * (floor(PosZ / Base.Chunk) + 0.5) - Base.PosMid;
 			double Prob = 0, Radius = hypot(PosX + Base.PosMid, PosZ + Base.PosMid);
-			double Dmin = +numeric_limits<double>::infinity();
-			double Dmax = -numeric_limits<double>::infinity();
 			for (const auto& ring : Base.data)
 				if (Radius > ring.Rmin and Radius < ring.Rmax)
 					Prob = ring.Count * (ring.Rmax - ring.Rmin) / (Base.Chunk * Radius);
 			if (not Prob) return Prob;
+			double Dmin = +numeric_limits<double>::infinity();
+			double Dmax = -numeric_limits<double>::infinity();
 			for (const auto& eye : data) {
 				Dmin = min(Dmin, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) - hypot(PosX - eye.PosX, PosZ - eye.PosZ));
 				Dmax = max(Dmax, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) + hypot(PosX - eye.PosX, PosZ - eye.PosZ));
@@ -100,7 +102,6 @@ protected:
 				}
 			}
 			for (const auto& ring : Base.data) {
-				double Count = round(pi * (ring.Rmin + ring.Rmax) / (Base.Chunk * ring.Count));
 				auto Distr = [&ring](double Radius)
 					{ return Radius < ring.Rmax ? Radius < ring.Rmin ? 0 : ring.Distr[size_t(Radius - ring.Rmin)] : 1; };
 				if (Radius > ring.Rmin and Radius < ring.Rmax) {
@@ -113,18 +114,17 @@ protected:
 							double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
 							if (Delta > 0) cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 						}
-						ranges::sort(cache, less());
-						double Pmult = 1, Rmin = 0, Rmax = 0;
+						ranges::sort(cache);
+						double Pmult = 1, Rmax = -numeric_limits<double>::infinity();
 						for (const auto& line : cache) {
-							Rmin = max(Rmax, line.first);
+							Pmult -= Distr(max(Rmax, line.second)) - Distr(max(Rmax, line.first));
 							Rmax = max(Rmax, line.second);
-							Pmult -= Distr(Rmax) - Distr(Rmin);
 						}
 						Prob *= Pmult, cache.clear();
 					}
 				}
 				else if (Dmax > ring.Rmin and Dmin < ring.Rmax) {
-					double Psum = 0;
+					double Psum = 0, Count = round(pi * (ring.Rmin + ring.Rmax) / (Base.Chunk * ring.Count));
 					for (double Step = 0.5; Step < Count; Step++) {
 						double Prob = 1 / Count;
 						for (double Index = 0; Index < ring.Count; Index++) {
@@ -135,12 +135,11 @@ protected:
 								double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
 								if (Delta > 0) cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 							}
-							ranges::sort(cache, less());
-							double Pmult = 1, Rmin = 0, Rmax = 0;
+							ranges::sort(cache);
+							double Pmult = 1, Rmax = -numeric_limits<double>::infinity();
 							for (const auto& line : cache) {
-								Rmin = max(Rmax, line.first);
+								Pmult -= Distr(max(Rmax, line.second)) - Distr(max(Rmax, line.first));
 								Rmax = max(Rmax, line.second);
-								Pmult -= Distr(Rmax) - Distr(Rmin);
 							}
 							Prob *= Pmult, cache.clear();
 						}
@@ -157,8 +156,8 @@ protected:
 		struct str { double PosX, PosZ, Prob; };
 		double Xmean, Zmean, Xvar, Zvar; vector<str> data;
 		Stronghold(MCVersion Base, long long Seed) {
-			static Generator World;
-			static StrongholdIter Target;
+			thread_local Generator World;
+			thread_local StrongholdIter Target;
 			setupGenerator(&World, Base, false);
 			applySeed(&World, DIM_OVERWORLD, Seed);
 			initFirstStronghold(&Target, Base, Seed);
@@ -167,7 +166,7 @@ protected:
 			Xmean = Target.pos.x, Zmean = Target.pos.z, Xvar = 0, Zvar = 0;
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
-			static vector<str> cache;
+			thread_local vector<str> cache;
 			auto order = [](const str& prev, const str& next)
 				{ return prev.Prob != next.Prob ? prev.Prob > next.Prob : prev.PosX != next.PosX ? prev.PosX < next.PosX : prev.PosZ < next.PosZ; };
 			for (const auto& eye : Source.data) {
@@ -211,29 +210,23 @@ protected:
 							cache.emplace_back(PosX, PosZ, 0);
 				}
 				data.swap(cache), cache.clear();
-				if (data.empty()) break;
+				if (data.empty()) return;
 			}
-			double Psum = 0; Xmean = 0, Zmean = 0, Xvar = 0, Zvar = 0;
+			double Xsum = 0, Zsum = 0, Psum = 0, Xsum2 = 0, Zsum2 = 0;
 			for (auto& str : data) {
 				str.PosX = Base.Chunk * floor(str.PosX / Base.Chunk) + Base.PosGen;
 				str.PosZ = Base.Chunk * floor(str.PosZ / Base.Chunk) + Base.PosGen;
 				str.Prob = Source.solve(Base, str.PosX, str.PosZ);
-				if (str.Prob > 0) {
-					Psum += str.Prob;
-					Xmean += str.Prob * str.PosX;
-					Zmean += str.Prob * str.PosZ;
-					cache.emplace_back(str.PosX, str.PosZ, str.Prob);
-				}
+				Xsum += str.Prob * str.PosX, Zsum += str.Prob * str.PosZ, Psum += str.Prob;
 			}
-			Xmean /= Psum, Zmean /= Psum;
-			data.swap(cache), cache.clear();
-			ranges::sort(data, order);
-			for (auto& str : data) {
-				str.Prob /= Psum;
-				Xvar += str.Prob * (str.PosX - Xmean) * (str.PosX - Xmean);
-				Zvar += str.Prob * (str.PosZ - Zmean) * (str.PosZ - Zmean);
+			Xmean = Xsum / Psum, Zmean = Zsum / Psum;
+			for (const auto& str : data) {
+				Xsum2 += str.Prob * (str.PosX - Xmean) * (str.PosX - Xmean);
+				Zsum2 += str.Prob * (str.PosZ - Zmean) * (str.PosZ - Zmean);
+				if (str.Prob > 0) cache.emplace_back(str.PosX, str.PosZ, str.Prob / Psum);
 			}
-			Xvar = sqrt(Xvar), Zvar = sqrt(Zvar);
+			Xvar = sqrt(Xsum2 / Psum), Zvar = sqrt(Zsum2 / Psum);
+			data.swap(cache), cache.clear(), ranges::sort(data, order);
 		}
 	};
 
@@ -291,7 +284,7 @@ public:
 			regex("^ *VER" VALUE " *$", regex::icase),
 			regex("^ *ERR" VALUE VALUE " *$", regex::icase),
 			regex("^ *ADD" VALUE VALUE VALUE " *$", regex::icase),
-			regex("^ */execute in minecraft:overworld run tp @s" VALUE VALUE VALUE VALUE VALUE " *$", regex::icase)
+			regex("^ */execute in (?:minecraft:)?overworld run tp @s" VALUE VALUE VALUE VALUE VALUE " *$", regex::icase)
 		};
 		size_t Index; smatch Value; string Output;
 		for (Index = 0; Index < size(Pattern); Index++)

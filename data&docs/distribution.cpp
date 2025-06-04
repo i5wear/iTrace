@@ -14,10 +14,8 @@ int main() {
 	static StrongholdIter Target;
 	int Progress = 0, Function[(Rmax - Rmin) / Width]{ 0 };
 	for (int Seed = Smin; Seed <= Smax; Seed++) {
-		if (Seed - Smin == Progress * (Smax - Smin) / 100) {
-			system("CLS");
-			cout << format("{0}%\n", ++Progress);
-		}
+		if (Seed - Smin == Progress * (Smax - Smin) / 100)
+			system("CLS"), cout << format("{0}%\n", ++Progress);
 		setupGenerator(&World, Base, false);
 		applySeed(&World, DIM_OVERWORLD, Seed);
 		initFirstStronghold(&Target, Base, Seed);

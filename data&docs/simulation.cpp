@@ -14,7 +14,7 @@ class Simulator {
 
 private:
 
-	struct { double PosX, PosZ; } Map[128];
+	struct { double PosX, PosZ; } data[128];
 
 	default_random_engine RNG;
 
@@ -31,7 +31,7 @@ public:
 		setupGenerator(&World, Base, false);
 		applySeed(&World, DIM_OVERWORLD, Seed);
 		initFirstStronghold(&Target, Base, Seed);
-		for (auto& str : Map) {
+		for (auto& str : data) {
 			nextStronghold(&Target, &World);
 			str.PosX = Target.pos.x;
 			str.PosZ = Target.pos.z;
@@ -46,7 +46,7 @@ public:
 		double PosZ = 0.01 * round(100 * Radius * sin(Angle)) - PosMid;
 		double Yaw = numeric_limits<double>::quiet_NaN();
 		double Dmin = +numeric_limits<double>::infinity();
-		for (const auto& str : Map) {
+		for (const auto& str : data) {
 			double Dist = hypot(PosX - str.PosX, PosZ - str.PosZ);
 			double Angle = 180/pi * atan2(str.PosZ - PosZ, str.PosX - PosX) - 90;
 			if (Dist < Dmin) Dmin = Dist, Yaw = remainder(Angle + Error, 360);
@@ -56,7 +56,7 @@ public:
 	}
 
 	string calib(double Emean, double Evar, bool Legacy) {
-		const auto& Target{ Map[0] };
+		const auto& Target{ data[0] };
 		double Error = normal_distribution(Emean, Evar)(RNG);
 		double Angle = uniform_real_distribution(-pi, pi)(RNG);
 		double PosX = 0.01 * round(100 * (Target.PosX + 64 * cos(Angle))) - PosMid;

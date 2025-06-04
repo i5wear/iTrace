@@ -313,7 +313,7 @@ public:
 		}
 		else if (Seed) {
 			static default_random_engine RNG{ random_device()() };
-			const auto& Target{ Stronghold(Base, Seed).data.front() };
+			const auto& Target{ Stronghold(Base, Seed).data[0] };
 			double Error = Source.calib(Base, Target.PosX, Target.PosZ);
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
 			if (not Source.data.empty())

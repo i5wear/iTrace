@@ -24,7 +24,7 @@ int main() {
 			Function[(Radius - Rmin) / Width]++;
 		}
 	}
-	string Output = "Range,Samples\n";
+	string Output = "Radius,Samples\n";
 	for (int N = 0; N < (Rmax - Rmin) / Width; N++)
 		Output += format("{0},{1}\n", Rmin + N * Width, Function[N]);
 	ofstream("data.csv") << Output;

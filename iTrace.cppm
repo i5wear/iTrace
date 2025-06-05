@@ -78,7 +78,6 @@ protected:
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
-			thread_local vector<pair<double, double>> cache;
 			PosX = Base.Chunk * (floor(PosX / Base.Chunk) + 0.5) - Base.PosMid;
 			PosZ = Base.Chunk * (floor(PosZ / Base.Chunk) + 0.5) - Base.PosMid;
 			double Prob = 0, Radius = hypot(PosX + Base.PosMid, PosZ + Base.PosMid);
@@ -98,6 +97,7 @@ protected:
 					Prob *= Evar * (erf(Emax) - erf(Emin)) / eye.Range;
 				}
 			}
+			vector<pair<double, double>> cache;
 			for (const auto& ring : Base.data) {
 				auto Distr = [&ring](double Radius)
 					{ return Radius < ring.Rmax ? Radius < ring.Rmin ? 0 : ring.Distr[size_t(Radius - ring.Rmin)] : 1; };
@@ -164,7 +164,7 @@ protected:
 			Zmean = Target.pos.z, Zvar = 0;
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
-			thread_local vector<str> cache;
+			vector<str> cache;
 			auto order = [](const str& prev, const str& next)
 				{ return prev.Prob != next.Prob ? prev.Prob > next.Prob : prev.PosX != next.PosX ? prev.PosX < next.PosX : prev.PosZ < next.PosZ; };
 			for (const auto& eye : Source.data) {
@@ -223,7 +223,7 @@ protected:
 			}
 			Xmean = Xsum, Xvar = sqrt(Xsum2 - Xsum * Xsum);
 			Zmean = Zsum, Zvar = sqrt(Zsum2 - Zsum * Zsum);
-			data.swap(cache), cache.clear(), ranges::sort(data, order);
+			data.swap(cache), ranges::sort(data, order);
 		}
 	};
 

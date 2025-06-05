@@ -314,7 +314,7 @@ public:
 		else if (not Source.data.empty()) {
 			Stronghold Target{ Base, Source };
 			for (const auto& str : Target.data)
-				Output += format("{0:>6.3f}% -> ({1:.0f}, {2:.0f})\n", 100 * str.Prob, str.PosX, str.PosZ);
+				Output += format("{0:>6.3f}% → ({1:.0f}, {2:.0f})\n", 100 * str.Prob, str.PosX, str.PosZ);
 			if (not Target.data.empty())
 				Output += format("({0:.0f} ± {1:.0f}, {2:.0f} ± {3:.0f})\n", Target.Xmean, Target.Xvar, Target.Zmean, Target.Zvar);
 		}

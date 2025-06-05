@@ -221,8 +221,9 @@ protected:
 				Zsum += str.PosZ * str.Prob / Psum, Zsum2 += str.PosZ * str.PosZ * str.Prob / Psum;
 				if (str.Prob > 0) cache.emplace_back(str.PosX, str.PosZ, str.Prob / Psum);
 			}
-			Xmean = Xsum, Xvar = sqrt(Xsum2 - Xsum * Xsum);
-			Zmean = Zsum, Zvar = sqrt(Zsum2 - Zsum * Zsum);
+			Xsum2 -= Xsum * Xsum, Zsum2 -= Zsum * Zsum;
+			Xmean = Xsum, Xvar = Xsum2 > 0 ? sqrt(Xsum2) : 0;
+			Zmean = Zsum, Zvar = Zsum2 > 0 ? sqrt(Zsum2) : 0;
 			data.swap(cache), ranges::sort(data, order);
 		}
 	};

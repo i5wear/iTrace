@@ -9,15 +9,15 @@ using namespace numbers;
 export class iTrace {
 
 protected:
-	
+
 	struct Constants {
 		struct ring { double Rmin, Rmax, Count, *Distr; };
 		double Chunk, PosGen, PosMid; vector<ring> data;
 		static double table7[], table12[], table16[];
-		Constants(MCVersion Base) {
+		Constants(long long Base) {
 			if (Base < MC_1_9) {
 				Chunk = 16, PosGen = 4, PosMid = 4;
-				data = { {460, 1332, 3, table7} };
+				data = {{460, 1332, 3, table7}};
 			}
 			else if (Base < MC_1_13) {
 				Chunk = 16, PosGen = 4, PosMid = 0;
@@ -71,10 +71,10 @@ protected:
 			for (const auto& eye : data) {
 				Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
 				Esum += Error / data.size(), Esum2 += Error * Error / (data.size() - 1);
-				Rsum2 += eye.Range * eye.Range / (3 * data.size());
+				Rsum2 += eye.Range * eye.Range / data.size();
 			}
 			Esum2 -= Esum * Esum * data.size() / (data.size() - 1);
-			Emean = Esum, Evar = sqrt(fdim(Esum2, Rsum2));
+			Emean = Esum, Evar = sqrt(fmax(0, Esum2 - Rsum2 / 3));
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
@@ -84,7 +84,7 @@ protected:
 			for (const auto& ring : Base.data)
 				if (Radius > ring.Rmin and Radius < ring.Rmax)
 					Prob = ring.Count * (ring.Rmax - ring.Rmin) / (Base.Chunk * Radius);
-			if (not Prob) return Prob;
+			if (Prob == 0) return Prob;
 			double Dmin = +numeric_limits<double>::infinity();
 			double Dmax = -numeric_limits<double>::infinity();
 			for (const auto& eye : data) {
@@ -151,7 +151,7 @@ protected:
 	struct Stronghold {
 		struct str { double PosX, PosZ, Prob; };
 		double Xmean, Xvar, Zmean, Zvar; vector<str> data;
-		Stronghold(MCVersion Base, long long Seed) {
+		explicit Stronghold(long long Base, long long Seed) {
 			thread_local Generator World;
 			thread_local StrongholdIter Target;
 			setupGenerator(&World, Base, false);
@@ -162,7 +162,7 @@ protected:
 			Xmean = Target.pos.x, Xvar = 0;
 			Zmean = Target.pos.z, Zvar = 0;
 		}
-		Stronghold(const Constants& Base, const Endereyes& Source) {
+		explicit Stronghold(const Constants& Base, const Endereyes& Source) {
 			vector<str> cache;
 			for (const auto& eye : Source.data) {
 				auto order = [](const str& pre, const str& next) { return pre.PosX != next.PosX ? pre.PosX < next.PosX : pre.PosZ < next.PosZ; };
@@ -177,7 +177,7 @@ protected:
 				double Angle = eye.Yaw - Source.Emean;
 				double Amin = Angle - eye.Range - 4 * Source.Evar;
 				double Amax = Angle + eye.Range + 4 * Source.Evar;
-				double PosBox[]{ eye.PosX + Dmin * cos(Amin), eye.PosX + Dmax * cos(Amin), eye.PosX + Dmin * cos(Amax), eye.PosX + Dmax * cos(Amax) };
+				double PosBox[] = {eye.PosX + Dmin * cos(Amin), eye.PosX + Dmax * cos(Amin), eye.PosX + Dmin * cos(Amax), eye.PosX + Dmax * cos(Amax)};
 				double Xmin = Base.Chunk * (round((ranges::min(PosBox) + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 				double Xmax = Base.Chunk * (round((ranges::max(PosBox) + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 				for (double PosX = Xmin; PosX < Xmax; PosX += Base.Chunk) {
@@ -218,25 +218,23 @@ protected:
 			for (const auto& str : data) {
 				Xsum += str.PosX * str.Prob / Psum, Xsum2 += str.PosX * str.PosX * str.Prob / Psum;
 				Zsum += str.PosZ * str.Prob / Psum, Zsum2 += str.PosZ * str.PosZ * str.Prob / Psum;
-				if (str.Prob) cache.emplace_back(str.PosX, str.PosZ, str.Prob / Psum);
+				if (str.Prob != 0) cache.emplace_back(str.PosX, str.PosZ, str.Prob / Psum);
 			}
-			Xmean = Xsum, Xvar = sqrt(fdim(Xsum2, Zsum * Zsum));
-			Zmean = Zsum, Zvar = sqrt(fdim(Zsum2, Zsum * Zsum));
+			Xmean = Xsum, Xvar = sqrt(fmax(0, Xsum2 - Xsum * Xsum));
+			Zmean = Zsum, Zvar = sqrt(fmax(0, Zsum2 - Zsum * Zsum));
 			data.swap(cache), ranges::sort(data, order);
 		}
 	};
 
 private:
 
-	MCVersion Base{ MC_1_16 };
-	
-	long long Seed{ false };
+	long long Base = MC_NEWEST, Seed = 0;
 
-	Endereyes Source{ 0, pi/18000 };
+	Endereyes Source = {pi/750, pi/2250};
 
 public:
 
-	static constexpr char Intro[]{
+	static constexpr char Intro[] = {
 		"iTrace (https://github.com/i5wear/iTrace)\n\n"
 		"高精度的要塞计算器，改进了 Ninjabrain Bot 的算法。\n"
 		"其研发基于要塞生成的所有细节，均来自 Cubiomes。\n\n"
@@ -273,7 +271,7 @@ public:
 	};
 
 	string operator()(const string& Input) {
-		static regex Pattern[]{
+		static regex Pattern[] = {
 			regex("^ *CHECK *$", regex::icase),
 			regex("^ *CLEAR *$", regex::icase),
 			regex("^ *CAL" VALUE " *$", regex::icase),
@@ -283,34 +281,34 @@ public:
 			regex("^ */execute in (?:minecraft:)?overworld run tp @s" VALUE VALUE VALUE VALUE VALUE " *$", regex::icase)
 		};
 		size_t Index; smatch Value; string Output;
-		for (Index = 0; Index < size(Pattern); Index++)
+		for (Index = 0; Index < 7; Index++)
 			if (regex_match(Input, Value, Pattern[Index])) break;
 		switch (Index) {
 		case 0: Index = 0; break;
 		case 1: Source.data.clear(); break;
 		case 2: Seed = stoll(Value[1]); break;
-		case 3: Base = MCVersion(str2mc(Value[1].str().data())); break;
+		case 3: Base = str2mc(Value[1].str().data()); break;
 		case 4: Source.Emean = pi/180 * stod(Value[1]), Source.Evar = pi/180 * stod(Value[2]); break;
 		case 5: Source.data.emplace_back(stod(Value[1]), stod(Value[2]), pi/180 * (stod(Value[3]) + 90), pi/3600); break;
 		case 6: Source.data.emplace_back(stod(Value[1]), stod(Value[3]), pi/180 * (stod(Value[4]) + 90), pi/36000); break;
 		default: return Output;
 		}
-		if (not Index) {
+		if (Index == 0) {
 			Output += format("VER: {0}  Mean: {1:.4f}  SD: {2:.4f}\n", mc2str(Base), 180/pi * Source.Emean, 180/pi * Source.Evar);
 			for (const auto& eye : Source.data)
 				Output += format("#{0}: ({1:.1f}, {2:.1f}, {3:.2f} ± {4:.1g})\n", ++Index, eye.PosX, eye.PosZ, 180/pi * eye.Yaw - 90, 180/pi * eye.Range);
 		}
-		else if (Seed) {
-			static default_random_engine RNG{ random_device()() };
-			const auto& Target{ Stronghold(Base, Seed).data[0] };
+		else if (Seed != 0) {
+			static default_random_engine RNG{random_device()()};
+			const auto& Target = Stronghold(Base, Seed).data[0];
 			double Error = Source.calib(Base, Target.PosX, Target.PosZ);
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
 			if (not Source.data.empty())
 				Output += format("#{0}: {1:.4f}  Mean: {2:.4f}  SD: {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Evar);
-			Output += format("/tp {0:.2f} 250 {1:.2f}\n", Target.PosX + 60 * cos(Angle), Target.PosZ + 60 * sin(Angle));
+			Output += format("/tp {0:.2f} 240 {1:.2f}\n", Target.PosX + 60 * cos(Angle), Target.PosZ + 60 * sin(Angle));
 		}
 		else if (not Source.data.empty()) {
-			Stronghold Target{ Base, Source };
+			Stronghold Target{Base, Source};
 			for (const auto& str : Target.data)
 				Output += format("{0:>6.3f}% → ({1:.0f}, {2:.0f})\n", 100 * str.Prob, str.PosX, str.PosZ);
 			if (not Target.data.empty())

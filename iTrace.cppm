@@ -67,14 +67,14 @@ protected:
 		double calib(const Constants& Base, double PosX, double PosZ) const {
 			PosX = Base.Chunk * (floor(PosX / Base.Chunk) + 0.5) - Base.PosMid;
 			PosZ = Base.Chunk * (floor(PosZ / Base.Chunk) + 0.5) - Base.PosMid;
-			double Error = 0, Esum = 0, Esum2 = 0;
+			double Error = 0, Esum = 0, Esum2 = 0, Rsum2 = 0;
 			for (const auto& eye : data) {
 				Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
 				Esum += Error / data.size(), Esum2 += Error * Error / (data.size() - 1);
-				Esum2 -= eye.Range * eye.Range / (3 * data.size());
+				Rsum2 += eye.Range * eye.Range / (3 * data.size());
 			}
 			Esum2 -= Esum * Esum * data.size() / (data.size() - 1);
-			Emean = Esum, Evar = Esum2 > 0 ? sqrt(Esum2) : 0;
+			Emean = Esum, Evar = sqrt(fdim(Esum2, Rsum2));
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
@@ -88,8 +88,8 @@ protected:
 			double Dmin = +numeric_limits<double>::infinity();
 			double Dmax = -numeric_limits<double>::infinity();
 			for (const auto& eye : data) {
-				Dmin = min(Dmin, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) - hypot(PosX - eye.PosX, PosZ - eye.PosZ));
-				Dmax = max(Dmax, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) + hypot(PosX - eye.PosX, PosZ - eye.PosZ));
+				Dmin = fmin(Dmin, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) - hypot(PosX - eye.PosX, PosZ - eye.PosZ));
+				Dmax = fmax(Dmax, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) + hypot(PosX - eye.PosX, PosZ - eye.PosZ));
 				if (Evar > 0) {
 					double Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
 					double Emin = (Error - Emean - eye.Range) / (sqrt2 * Evar);
@@ -99,8 +99,7 @@ protected:
 			}
 			vector<pair<double, double>> cache;
 			for (const auto& ring : Base.data) {
-				auto Distr = [&ring](double Radius)
-					{ return Radius < ring.Rmax ? Radius < ring.Rmin ? 0 : ring.Distr[size_t(Radius - ring.Rmin)] : 1; };
+				auto Distr = [&ring](double Radius) { return Radius < ring.Rmax ? Radius < ring.Rmin ? 0 : ring.Distr[size_t(Radius - ring.Rmin)] : 1; };
 				if (Radius > ring.Rmin and Radius < ring.Rmax) {
 					Prob *= Distr(Radius + 0.5 * Base.Chunk) - Distr(Radius - 0.5 * Base.Chunk);
 					for (double Index = 1; Index < ring.Count; Index++) {
@@ -114,8 +113,8 @@ protected:
 						ranges::sort(cache, ranges::less());
 						double Pmult = 1, Rmax = -numeric_limits<double>::infinity();
 						for (const auto& line : cache) {
-							Pmult -= Distr(max(Rmax, line.second)) - Distr(max(Rmax, line.first));
-							Rmax = max(Rmax, line.second);
+							Pmult -= Distr(fmax(Rmax, line.second)) - Distr(fmax(Rmax, line.first));
+							Rmax = fmax(Rmax, line.second);
 						}
 						Prob *= Pmult, cache.clear();
 					}
@@ -135,8 +134,8 @@ protected:
 							ranges::sort(cache, ranges::less());
 							double Pmult = 1, Rmax = -numeric_limits<double>::infinity();
 							for (const auto& line : cache) {
-								Pmult -= Distr(max(Rmax, line.second)) - Distr(max(Rmax, line.first));
-								Rmax = max(Rmax, line.second);
+								Pmult -= Distr(fmax(Rmax, line.second)) - Distr(fmax(Rmax, line.first));
+								Rmax = fmax(Rmax, line.second);
 							}
 							Prob *= Pmult, cache.clear();
 						}
@@ -165,16 +164,15 @@ protected:
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
 			vector<str> cache;
-			auto order = [](const str& prev, const str& next)
-				{ return prev.Prob != next.Prob ? prev.Prob > next.Prob : prev.PosX != next.PosX ? prev.PosX < next.PosX : prev.PosZ < next.PosZ; };
 			for (const auto& eye : Source.data) {
+				auto order = [](const str& pre, const str& next) { return pre.PosX != next.PosX ? pre.PosX < next.PosX : pre.PosZ < next.PosZ; };
 				double Radius = hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid);
 				double Dmin = +numeric_limits<double>::infinity();
 				double Dmax = +numeric_limits<double>::infinity();
 				for (const auto& ring : Base.data) {
 					double Angle = pi / ring.Count;
-					Dmin = min(Dmin, Radius < ring.Rmax ? Radius < ring.Rmin ? ring.Rmin - Radius : 0 : Radius - ring.Rmax);
-					Dmax = min(Dmax, hypot(Radius * sin(Angle), max(Radius * cos(Angle) - ring.Rmin, ring.Rmax - Radius * cos(Angle))));
+					Dmin = fmin(Dmin, Radius < ring.Rmax ? Radius < ring.Rmin ? ring.Rmin - Radius : 0 : Radius - ring.Rmax);
+					Dmax = fmin(Dmax, hypot(Radius * sin(Angle), fmax(Radius * cos(Angle) - ring.Rmin, ring.Rmax - Radius * cos(Angle))));
 				}
 				double Angle = eye.Yaw - Source.Emean;
 				double Amin = Angle - eye.Range - 4 * Source.Evar;
@@ -185,21 +183,21 @@ protected:
 				for (double PosX = Xmin; PosX < Xmax; PosX += Base.Chunk) {
 					double Zmin = +numeric_limits<double>::infinity();
 					double Zmax = -numeric_limits<double>::infinity();
-					if (PosX > min(PosBox[0], PosBox[1]) and PosX < max(PosBox[0], PosBox[1])) {
-						Zmin = min(Zmin, eye.PosZ + (PosX - eye.PosX) * tan(Amin));
-						Zmax = max(Zmax, eye.PosZ + (PosX - eye.PosX) * tan(Amin));
+					if (PosX > fmin(PosBox[0], PosBox[1]) and PosX < fmax(PosBox[0], PosBox[1])) {
+						Zmin = fmin(Zmin, eye.PosZ + (PosX - eye.PosX) * tan(Amin));
+						Zmax = fmax(Zmax, eye.PosZ + (PosX - eye.PosX) * tan(Amin));
 					}
-					if (PosX > min(PosBox[2], PosBox[3]) and PosX < max(PosBox[2], PosBox[3])) {
-						Zmin = min(Zmin, eye.PosZ + (PosX - eye.PosX) * tan(Amax));
-						Zmax = max(Zmax, eye.PosZ + (PosX - eye.PosX) * tan(Amax));
+					if (PosX > fmin(PosBox[2], PosBox[3]) and PosX < fmax(PosBox[2], PosBox[3])) {
+						Zmin = fmin(Zmin, eye.PosZ + (PosX - eye.PosX) * tan(Amax));
+						Zmax = fmax(Zmax, eye.PosZ + (PosX - eye.PosX) * tan(Amax));
 					}
-					if (PosX > min(PosBox[0], PosBox[2]) and PosX < max(PosBox[0], PosBox[2])) {
-						Zmin = min(Zmin, eye.PosZ + Dmin / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
-						Zmax = max(Zmax, eye.PosZ + Dmin / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
+					if (PosX > fmin(PosBox[0], PosBox[2]) and PosX < fmax(PosBox[0], PosBox[2])) {
+						Zmin = fmin(Zmin, eye.PosZ + Dmin / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
+						Zmax = fmax(Zmax, eye.PosZ + Dmin / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
 					}
-					if (PosX > min(PosBox[1], PosBox[3]) and PosX < max(PosBox[1], PosBox[3])) {
-						Zmin = min(Zmin, eye.PosZ + Dmax / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
-						Zmax = max(Zmax, eye.PosZ + Dmax / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
+					if (PosX > fmin(PosBox[1], PosBox[3]) and PosX < fmax(PosBox[1], PosBox[3])) {
+						Zmin = fmin(Zmin, eye.PosZ + Dmax / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
+						Zmax = fmax(Zmax, eye.PosZ + Dmax / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
 					}
 					Zmin = Base.Chunk * (round((Zmin + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					Zmax = Base.Chunk * (round((Zmax + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
@@ -210,8 +208,9 @@ protected:
 				data.swap(cache), cache.clear();
 				if (data.empty()) break;
 			}
-			double Xsum = 0, Xsum2 = 0, Zsum = 0, Zsum2 = 0, Psum = 0;
-			for (volatile auto& str : data) {
+			auto order = [](const str& pre, const str& next) { return pre.Prob > next.Prob; };
+			double Psum = 0, Xsum = 0, Xsum2 = 0, Zsum = 0, Zsum2 = 0;
+			for (auto& str : data) {
 				str.PosX = Base.Chunk * floor(str.PosX / Base.Chunk) + Base.PosGen;
 				str.PosZ = Base.Chunk * floor(str.PosZ / Base.Chunk) + Base.PosGen;
 				str.Prob = Source.solve(Base, str.PosX, str.PosZ), Psum += str.Prob;
@@ -219,11 +218,10 @@ protected:
 			for (const auto& str : data) {
 				Xsum += str.PosX * str.Prob / Psum, Xsum2 += str.PosX * str.PosX * str.Prob / Psum;
 				Zsum += str.PosZ * str.Prob / Psum, Zsum2 += str.PosZ * str.PosZ * str.Prob / Psum;
-				if (str.Prob > 0) cache.emplace_back(str.PosX, str.PosZ, str.Prob / Psum);
+				if (str.Prob) cache.emplace_back(str.PosX, str.PosZ, str.Prob / Psum);
 			}
-			Xsum2 -= Xsum * Xsum, Zsum2 -= Zsum * Zsum;
-			Xmean = Xsum, Xvar = Xsum2 > 0 ? sqrt(Xsum2) : 0;
-			Zmean = Zsum, Zvar = Zsum2 > 0 ? sqrt(Zsum2) : 0;
+			Xmean = Xsum, Xvar = sqrt(fdim(Xsum2, Zsum * Zsum));
+			Zmean = Zsum, Zvar = sqrt(fdim(Zsum2, Zsum * Zsum));
 			data.swap(cache), ranges::sort(data, order);
 		}
 	};
@@ -308,8 +306,8 @@ public:
 			double Error = Source.calib(Base, Target.PosX, Target.PosZ);
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
 			if (not Source.data.empty())
-				Output += format("ERR: {0:.4f}  Mean: {1:.4f}  SD: {2:.4f}\n", 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Evar);
-			Output += format("#{0}: /tp {1:.2f} 250 {2:.2f}\n", Source.data.size() + 1, Target.PosX + 60 * cos(Angle), Target.PosZ + 60 * sin(Angle));
+				Output += format("#{0}: {1:.4f}  Mean: {2:.4f}  SD: {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Evar);
+			Output += format("/tp {0:.2f} 250 {1:.2f}\n", Target.PosX + 60 * cos(Angle), Target.PosZ + 60 * sin(Angle));
 		}
 		else if (not Source.data.empty()) {
 			Stronghold Target{ Base, Source };

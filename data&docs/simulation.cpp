@@ -28,11 +28,11 @@ public:
 		setupGenerator(&World, Base, false);
 		applySeed(&World, DIM_OVERWORLD, Seed);
 		initFirstStronghold(&Target, Base, Seed);
-		double Offset = Base < MC_1_19 ? 4 : -4;
+		double offset = Base < MC_1_19 ? 4 : -4;
 		for (auto& str : data) {
 			nextStronghold(&Target, &World);
-			str.PosX = Target.pos.x + Offset;
-			str.PosZ = Target.pos.z + Offset;
+			str.PosX = Target.pos.x + offset;
+			str.PosZ = Target.pos.z + offset;
 		}
 	}
 

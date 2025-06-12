@@ -151,18 +151,18 @@ protected:
 	struct Stronghold {
 		struct str { double PosX, PosZ, Prob; };
 		double Xmean, Xvar, Zmean, Zvar; vector<str> data;
-		explicit Stronghold(long long Base, long long Seed) {
-			thread_local Generator World;
+		Stronghold(long long Base, long long Seed) {
+			thread_local Generator Source;
 			thread_local StrongholdIter Target;
-			setupGenerator(&World, Base, false);
-			applySeed(&World, DIM_OVERWORLD, Seed);
+			setupGenerator(&Source, Base, false);
+			applySeed(&Source, DIM_OVERWORLD, Seed);
 			initFirstStronghold(&Target, Base, Seed);
-			nextStronghold(&Target, &World);
+			nextStronghold(&Target, &Source);
 			data.emplace_back(Target.pos.x, Target.pos.z, 1);
 			Xmean = Target.pos.x, Xvar = 0;
 			Zmean = Target.pos.z, Zvar = 0;
 		}
-		explicit Stronghold(const Constants& Base, const Endereyes& Source) {
+		Stronghold(const Constants& Base, const Endereyes& Source) {
 			vector<str> cache;
 			for (const auto& eye : Source.data) {
 				auto order = [](const str& pre, const str& next) { return pre.PosX != next.PosX ? pre.PosX < next.PosX : pre.PosZ < next.PosZ; };
@@ -230,89 +230,51 @@ private:
 
 	long long Base = MC_NEWEST, Seed = 0;
 
-	Endereyes Source = {pi/750, pi/2250};
+	Endereyes Source = {pi/720, pi/3600};
 
 public:
-
-	static constexpr char Intro[] = {
-		"iTrace (https://github.com/i5wear/iTrace)\n\n"
-		"高精度的要塞计算器，改进了 Ninjabrain Bot 的算法。\n"
-		"其研发基于要塞生成的所有细节，均来自 Cubiomes。\n\n"
-		"An accurate stronghold calculator, which improved the algorithm of Ninjabrain Bot.\n"
-		"Its development is based on all details of stronghold generation that come from Cubiomes.\n\n"
-		"使用帮助 User Guide\n\n"
-		"首次使用时，请先设定游戏版本，并设定误差或开始误差校准。\n"
-		"对准末影之眼按下 F3 + C，直接将其粘贴，即可快捷输入数据。\n"
-		"若上述方式无法使用，则应按下 F3，并手动输入坐标和角度。\n"
-		"正常创建一个世界，获取种子并将其粘贴，即可开始误差校准。\n"
-		"退出程序不会丢失任何数据，所有历史输入均被自动保存与读取。\n\n"
-		"At the first time to use, set the game version, then set error or start calibration.\n"
-		"Aim at an ender eye and press F3 + C, then paste it directly for quick data input.\n"
-		"If this method is unavailable, press F3 and input positions and angle manually.\n"
-		"Create a world as normal, get the seed and paste it to start error calibration.\n"
-		"Program exit does not cause any data loss, as all inputs are auto saved and loaded.\n\n"
-		"命令列表 Command List\n\n"
-		"添加末影之眼：ADD [X坐标] [Z坐标] [偏航角]\n"
-		"设定游戏版本：VER [1.N]\n"
-		"设定误差数值：ERR [平均数] [标准差]\n"
-		"开始误差校准：CAL [种子]\n"
-		"终止误差校准：CAL 0\n"
-		"查看所有数据：CHECK\n"
-		"清除所有数据：CLEAR\n"
-		"终止程序运行：空输入\n\n"
-		"Add an ender eye: ADD [PosX] [PosZ] [Yaw]\n"
-		"Set game version: VER [1.N]\n"
-		"Set error value: ERR [Mean] [SD]\n"
-		"Start calibration: CAL [Seed]\n"
-		"Stop calibration: CAL 0\n"
-		"Check all data: CHECK\n"
-		"Clear all data: CLEAR\n"
-		"Exit program: Empty input"
-	};
 
 	string operator()(const string& Input) {
 		static regex Pattern[] = {
 			regex("^ *CHECK *$", regex::icase),
 			regex("^ *CLEAR *$", regex::icase),
-			regex("^ *CAL" VALUE " *$", regex::icase),
 			regex("^ *VER" VALUE " *$", regex::icase),
+			regex("^ *CAL" VALUE " *$", regex::icase),
 			regex("^ *ERR" VALUE VALUE " *$", regex::icase),
 			regex("^ *ADD" VALUE VALUE VALUE " *$", regex::icase),
 			regex("^ */execute in (?:minecraft:)?overworld run tp @s" VALUE VALUE VALUE VALUE VALUE " *$", regex::icase)
 		};
+		thread_local default_random_engine RNG;
 		size_t Index; smatch Value; string Output;
 		for (Index = 0; Index < 7; Index++)
 			if (regex_match(Input, Value, Pattern[Index])) break;
 		switch (Index) {
 		case 0: Index = 0; break;
 		case 1: Source.data.clear(); break;
-		case 2: Seed = stoll(Value[1]); break;
-		case 3: Base = str2mc(Value[1].str().data()); break;
+		case 2: Base = str2mc(Value[1].str().data()); break;
+		case 3: Seed = stoll(Value[1]), RNG.seed(stoll(Value[1])); break;
 		case 4: Source.Emean = pi/180 * stod(Value[1]), Source.Evar = pi/180 * stod(Value[2]); break;
 		case 5: Source.data.emplace_back(stod(Value[1]), stod(Value[2]), pi/180 * (stod(Value[3]) + 90), pi/3600); break;
 		case 6: Source.data.emplace_back(stod(Value[1]), stod(Value[3]), pi/180 * (stod(Value[4]) + 90), pi/36000); break;
 		default: return Output;
 		}
 		if (Index == 0) {
-			Output += format("VER: {0}  Mean: {1:.4f}  SD: {2:.4f}\n", mc2str(Base), 180/pi * Source.Emean, 180/pi * Source.Evar);
+			Output += format("VER: {0}  Seed: {1}  ERR: {2:.4f} ± {3:.4f}\n", mc2str(Base), Seed, 180/pi * Source.Emean, 180/pi * Source.Evar);
 			for (const auto& eye : Source.data)
 				Output += format("#{0}: ({1:.1f}, {2:.1f}, {3:.2f} ± {4:.1g})\n", ++Index, eye.PosX, eye.PosZ, 180/pi * eye.Yaw - 90, 180/pi * eye.Range);
 		}
 		else if (Seed != 0) {
-			static default_random_engine RNG{random_device()()};
-			const auto& Target = Stronghold(Base, Seed).data[0];
-			double Error = Source.calib(Base, Target.PosX, Target.PosZ);
+			const auto& str = Stronghold(Base, Seed).data[0];
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
-			if (not Source.data.empty())
-				Output += format("#{0}: {1:.4f}  Mean: {2:.4f}  SD: {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Evar);
-			Output += format("/tp {0:.2f} 240 {1:.2f}\n", Target.PosX + 60 * cos(Angle), Target.PosZ + 60 * sin(Angle));
+			double Error = Source.calib(Base, str.PosX, str.PosZ);
+			Output += format("#{0}: {1:.4f}  Mean: {2:.4f}  SD: {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Evar);
+			Output += format("/tp {0:.2f} 240.00 {1:.2f}\n", str.PosX + 60 * cos(Angle), str.PosZ + 60 * sin(Angle));
 		}
 		else if (not Source.data.empty()) {
-			Stronghold Target{Base, Source};
+			Stronghold Target(Base, Source);
 			for (const auto& str : Target.data)
 				Output += format("{0:>6.3f}% → ({1:.0f}, {2:.0f})\n", 100 * str.Prob, str.PosX, str.PosZ);
-			if (not Target.data.empty())
-				Output += format("({0:.0f} ± {1:.0f}, {2:.0f} ± {3:.0f})\n", Target.Xmean, Target.Xvar, Target.Zmean, Target.Zvar);
+			Output += format("({0:.0f} ± {1:.0f}, {2:.0f} ± {3:.0f})\n", Target.Xmean, Target.Xvar, Target.Zmean, Target.Zvar);
 		}
 		return Output;
 	}

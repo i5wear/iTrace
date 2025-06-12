@@ -11,7 +11,7 @@ using namespace std;
 int main() {
 	constexpr long long Base = MC_1_20, Rmin = 0, Rmax = 25600, Width = 128, Smin = 1, Smax = 1E4;
 	Generator Source; StrongholdIter Target;
-	long long Progress = 0, Function[(Rmax - Rmin) / Width] = {0};
+	long long Progress = 0, Function[(Rmax - Rmin) / Width]{};
 	for (long long Seed = Smin; Seed <= Smax; Seed++) {
 		if (Seed - Smin == Progress * (Smax - Smin) / 100)
 			cout << '|', Progress++;

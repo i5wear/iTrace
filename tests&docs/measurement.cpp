@@ -11,8 +11,8 @@ using namespace numbers;
 // Finally, the command for iTrace is generated to execute.
 // I've done massive tests by this, which is impossible by myself.
 int main() {
-	constexpr long long Base = MC_1_16, Seed = -1236314517, Trial = 32;
-	constexpr double Emean = 0, Evar = 0.004;
+	constexpr long long Base = MC_1_16, Seed = -1236314517;
+	constexpr double Emean = 0, Evar = 0.004, Count = 32;
 	default_random_engine RNG(Seed);
 	Generator Source; StrongholdIter Target;
 	setupGenerator(&Source, Base, false);
@@ -27,7 +27,7 @@ int main() {
 	Instance(format("VER {0}", mc2str(Base)));
 	Instance(format("ERR {0} {1}", Emean, Evar));
 	save << Instance("CHECK") << endl;
-	for (double Index = 0; Index < Trial; Index++) {
+	for (double Index = 0; Index < Count; Index++) {
 		double PosX = uniform_int_distribution(-25000, 25000)(RNG);
 		double PosZ = uniform_int_distribution(-25000, 25000)(RNG);
 		double Error = normal_distribution(Emean, Evar)(RNG);

@@ -4,7 +4,7 @@ import "cubiomes/finders.h";
 import "cubiomes/util.h";
 using namespace std;
 using namespace numbers;
-#define VALUE " +([+-]?[0-9]+(?:[.][0-9]+)?)"
+#define VALUE " ([+-]?[0-9]+(?:[.][0-9]+)?)"
 
 export class iTrace {
 
@@ -236,13 +236,13 @@ public:
 
 	string operator()(const string& Input) {
 		static regex Pattern[] = {
-			regex("^ *CHECK *$", regex::icase),
-			regex("^ *CLEAR *$", regex::icase),
-			regex("^ *VER" VALUE " *$", regex::icase),
-			regex("^ *CAL" VALUE " *$", regex::icase),
-			regex("^ *ERR" VALUE VALUE " *$", regex::icase),
-			regex("^ *ADD" VALUE VALUE VALUE " *$", regex::icase),
-			regex("^ */execute in (?:minecraft:)?overworld run tp @s" VALUE VALUE VALUE VALUE VALUE " *$", regex::icase)
+			regex("CHECK", regex::icase),
+			regex("CLEAR", regex::icase),
+			regex("VER" VALUE, regex::icase),
+			regex("CAL" VALUE, regex::icase),
+			regex("ERR" VALUE VALUE, regex::icase),
+			regex("ADD" VALUE VALUE VALUE, regex::icase),
+			regex("/execute in (?:minecraft:)?overworld run tp @s" VALUE VALUE VALUE VALUE VALUE, regex::icase)
 		};
 		thread_local default_random_engine RNG;
 		size_t Index; smatch Value; string Output;
@@ -259,7 +259,7 @@ public:
 		default: return Output;
 		}
 		if (Index == 0) {
-			Output += format("VER: {0}  Seed: {1}  ERR: {2:.4f} ± {3:.4f}\n", mc2str(Base), Seed, 180/pi * Source.Emean, 180/pi * Source.Evar);
+			Output += format("VER: {0}, SEED: {1}, ERR: {2:.4f} ± {3:.4f}\n", mc2str(Base), Seed, 180/pi * Source.Emean, 180/pi * Source.Evar);
 			for (const auto& eye : Source.data)
 				Output += format("#{0}: ({1:.1f}, {2:.1f}, {3:.2f} ± {4:.1g})\n", ++Index, eye.PosX, eye.PosZ, 180/pi * eye.Yaw - 90, 180/pi * eye.Range);
 		}
@@ -267,7 +267,7 @@ public:
 			const auto& str = Stronghold(Base, Seed).data[0];
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
 			double Error = Source.calib(Base, str.PosX, str.PosZ);
-			Output += format("#{0}: {1:.4f}  Mean: {2:.4f}  SD: {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Evar);
+			Output += format("#{0}: {1:.4f}, MEAN: {2:.4f}, SD: {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Evar);
 			Output += format("/tp {0:.2f} 240.00 {1:.2f}\n", str.PosX + 60 * cos(Angle), str.PosZ + 60 * sin(Angle));
 		}
 		else if (not Source.data.empty()) {

@@ -74,7 +74,7 @@ protected:
 				Rsum2 += eye.Range * eye.Range / data.size();
 			}
 			Esum2 -= Esum * Esum * data.size() / (data.size() - 1);
-			Emean = Esum, Evar = sqrt(fmax(0, Esum2 - Rsum2 / 3));
+			Emean = Esum, Evar = fmax(0, sqrt(Esum2 - Rsum2 / 3));
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
@@ -218,10 +218,10 @@ protected:
 			for (const auto& str : data) {
 				Xsum += str.PosX * str.Prob / Psum, Xsum2 += str.PosX * str.PosX * str.Prob / Psum;
 				Zsum += str.PosZ * str.Prob / Psum, Zsum2 += str.PosZ * str.PosZ * str.Prob / Psum;
-				if (str.Prob != 0) cache.emplace_back(str.PosX, str.PosZ, str.Prob / Psum);
+				if (str.Prob > 0) cache.emplace_back(str.PosX, str.PosZ, str.Prob / Psum);
 			}
-			Xmean = Xsum, Xvar = sqrt(fmax(0, Xsum2 - Xsum * Xsum));
-			Zmean = Zsum, Zvar = sqrt(fmax(0, Zsum2 - Zsum * Zsum));
+			Xmean = Xsum, Xvar = fmax(0, sqrt(Xsum2 - Xsum * Xsum));
+			Zmean = Zsum, Zvar = fmax(0, sqrt(Zsum2 - Zsum * Zsum));
 			data.swap(cache), ranges::sort(data, order);
 		}
 	};

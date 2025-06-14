@@ -1,5 +1,4 @@
-import std;
-import "cubiomes/finders.h";
+import iTrace;
 using namespace std;
 
 // Measure the probability density of stronghold, with 12.8M samples.
@@ -9,21 +8,22 @@ using namespace std;
 // Also aim to prove that each ring shares the same distribution.
 // Tested final versions of 1.0, 1.8, 1.9, 1.12, 1.13, 1.17 and 1.20.
 int main() {
-	constexpr long long Base = MC_1_20, Rmin = 0, Rmax = 25600, Width = 128, Smin = 1, Smax = 1E4;
+	constexpr long long Base = MC_1_20, Width = 128, Rmax = 25600, Smax = 1E4;
 	Generator Source; StrongholdIter Target;
-	long long Progress = 0, Function[(Rmax - Rmin) / Width]{};
-	for (long long Seed = Smin; Seed <= Smax; Seed++) {
-		if (Seed - Smin == Progress * (Smax - Smin) / 100)
+	long long Progress = 0, Function[Rmax / Width]{};
+	for (long long Seed = 1; Seed <= Smax; Seed++) {
+		if (Seed == Progress * Smax / 100)
 			cout << '|', Progress++;
 		setupGenerator(&Source, Base, false);
 		applySeed(&Source, DIM_OVERWORLD, Seed);
 		initFirstStronghold(&Target, Base, Seed);
 		while (nextStronghold(&Target, &Source) > 0) {
 			long long Radius = hypot(Target.pos.x + 4, Target.pos.z + 4);
-			Function[(Radius - Rmin) / Width]++;
+			Function[Radius / Width]++;
 		}
 	}
-	ofstream save("data.csv", ios::noreplace);
-	for (long long Index = 0; Index < (Rmax - Rmin) / Width; Index++)
-		save << Rmin + Index * Width << ',' << Function[Index] << endl;
+	ofstream save("data.csv", ios::app);
+	save << mc2str(Base) << ',' << Smax << endl;
+	for (long long Index = 0; Index < Rmax / Width; Index++)
+		save << Index * Width << ',' << Function[Index] << endl;
 }

@@ -1,5 +1,4 @@
-import std;
-import "cubiomes/finders.h";
+import iTrace;
 using namespace std;
 
 // Measure the cumulative distribution of stronghold, with 100M samples.
@@ -9,21 +8,21 @@ using namespace std;
 // The measurement data are directly used in iTrace in raw. I think it works well.
 // Tested version 1.7.10, 1.12.2 and 1.16.5, which represents each group.
 int main() {
-	constexpr long long Base = MC_1_16, Rmin = 1200, Rmax = 2880, Width = 1, Smin = 1, Smax = 1E8;
+	constexpr long long Base = MC_1_16, Width = 1, Rmax = 2880, Smax = 1E8;
 	Generator Source; StrongholdIter Target;
-	long long Progress = 0, Function[(Rmax - Rmin) / Width]{};
-	for (long long Seed = Smin; Seed <= Smax; Seed++) {
-		if (Seed - Smin == Progress * (Smax - Smin) / 100)
+	long long Progress = 0, Function[Rmax / Width]{};
+	for (long long Seed = 1; Seed <= Smax; Seed++) {
+		if (Seed == Progress * Smax / 100)
 			cout << '|', Progress++;
 		setupGenerator(&Source, Base, false);
 		applySeed(&Source, DIM_OVERWORLD, Seed);
 		initFirstStronghold(&Target, Base, Seed);
 		nextStronghold(&Target, &Source);
 		long long Radius = hypot(Target.pos.x + 4, Target.pos.z + 4);
-		for (long long Index = (Radius - Rmin) / Width; Index < (Rmax - Rmin) / Width; Index++)
-			Function[Index]++;
+		for (long long Index = Radius / Width; Index < Rmax / Width; Function[Index++]++);
 	}
-	ofstream save("data.csv", ios::noreplace);
-	for (long long Index = 0; Index < (Rmax - Rmin) / Width; Index++)
-		save << Rmin + Index * Width << ',' << Function[Index] << endl;
+	ofstream save("data.csv", ios::app);
+	save << mc2str(Base) << ',' << Smax << endl;
+	for (long long Index = 0; Index < Rmax / Width; Index++)
+		save << Index * Width << ',' << Function[Index] << endl;
 }

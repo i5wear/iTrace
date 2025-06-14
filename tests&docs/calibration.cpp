@@ -1,9 +1,6 @@
 import iTrace;
-import "cubiomes/finders.h";
-import "cubiomes/util.h";
 using namespace std;
 using namespace numbers;
-#define VALUE " ([+-]?[0-9]+(?:[.][0-9]+)?)"
 
 // Simulate error calibration, with exact error distribution.
 // First, strongholds are generated with the preset world seed.
@@ -13,7 +10,7 @@ using namespace numbers;
 // Also simulate ninjabrain bot behavior to share the same dataset.
 int main() {
 	constexpr long long Base = MC_1_16, Seed = -1236314517;
-	constexpr double Emean = 0, Evar = 0.004, Count = 32;
+	constexpr double Emean = 0, Esigma = 0.004, Count = 32;
 	Generator Source; StrongholdIter Target;
 	setupGenerator(&Source, Base, false);
 	applySeed(&Source, DIM_OVERWORLD, Seed);
@@ -22,20 +19,20 @@ int main() {
 	double Offset = Base < MC_1_19 ? Base < MC_1_8 ? 0 : 4 : -4;
 	while (nextStronghold(&Target, &Source) > 0)
 		data.emplace_back(Target.pos.x + Offset, Target.pos.z + Offset);
-	default_random_engine RNG(Seed);
-	regex Pattern("#[0-9]+:" VALUE ", MEAN:" VALUE ", SD:" VALUE "\n/tp" VALUE VALUE VALUE "\n", regex::icase);
-	iTrace Instance; smatch Value; double Esum2 = 0;
-	ofstream save("data.txt", ios::noreplace);
+	iTrace Instance; string Input;
+	ofstream save("data.txt", ios::app);
 	Instance(format("VER {0}", mc2str(Base)));
-	Instance(format("ERR {0} {1}", Emean, Evar));
+	Instance(format("ERR {0} {1}", Emean, Esigma));
 	save << Instance("CHECK") << endl;
-	string Input = format("CAL {0}", Seed);
-	string Output = Instance(Input);
+	regex Pattern("#[0-9]+: (\\S+)  MEAN: (\\S+)  SD: (\\S+)\n/tp (\\S+) (\\S+) (\\S+)\n", regex::icase);
+	string Output; smatch Value; double Esum2 = 0;
+	Input = format("CAL {0}", Seed), Output = Instance(Input);
 	regex_match(Output, Value, Pattern);
 	save << Input << endl << Output << endl;
+	default_random_engine RNG(Seed);
 	for (double Index = 0; Index < Count; Index++) {
 		double PosX = stod(Value[4]), PosZ = stod(Value[6]);
-		double Error = normal_distribution(Emean, Evar)(RNG);
+		double Error = normal_distribution(Emean, Esigma)(RNG);
 		double Yaw = 0, Dmin = +numeric_limits<double>::infinity();
 		for (const auto& str : data) {
 			double Dist = hypot(str.first - PosX, str.second - PosZ);

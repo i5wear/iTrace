@@ -1,7 +1,7 @@
 export module iTrace;
 export import std;
-import "cubiomes/finders.h";
-import "cubiomes/util.h";
+export import "cubiomes/finders.h";
+export import "cubiomes/util.h";
 using namespace std;
 using namespace numbers;
 #define VALUE " ([+-]?[0-9]+(?:[.][0-9]+)?)"
@@ -63,7 +63,7 @@ protected:
 
 	struct Endereyes {
 		struct eye { double PosX, PosZ, Yaw, Range; };
-		mutable double Emean, Evar; vector<eye> data;
+		mutable double Emean, Esigma; vector<eye> data;
 		double calib(const Constants& Base, double PosX, double PosZ) const {
 			PosX = Base.Chunk * (floor(PosX / Base.Chunk) + 0.5) - Base.PosMid;
 			PosZ = Base.Chunk * (floor(PosZ / Base.Chunk) + 0.5) - Base.PosMid;
@@ -74,7 +74,7 @@ protected:
 				Rsum2 += eye.Range * eye.Range / data.size();
 			}
 			Esum2 -= Esum * Esum * data.size() / (data.size() - 1);
-			Emean = Esum, Evar = fmax(0, sqrt(Esum2 - Rsum2 / 3));
+			Emean = Esum, Esigma = fmax(0, sqrt(Esum2 - Rsum2 / 3));
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
@@ -90,11 +90,11 @@ protected:
 			for (const auto& eye : data) {
 				Dmin = fmin(Dmin, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) - hypot(PosX - eye.PosX, PosZ - eye.PosZ));
 				Dmax = fmax(Dmax, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) + hypot(PosX - eye.PosX, PosZ - eye.PosZ));
-				if (Evar > 0) {
+				if (Esigma > 0) {
 					double Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
-					double Emin = (Error - Emean - eye.Range) / (sqrt2 * Evar);
-					double Emax = (Error - Emean + eye.Range) / (sqrt2 * Evar);
-					Prob *= Evar * (erf(Emax) - erf(Emin)) / eye.Range;
+					double Emin = (Error - Emean - eye.Range) / (sqrt2 * Esigma);
+					double Emax = (Error - Emean + eye.Range) / (sqrt2 * Esigma);
+					Prob *= Esigma * (erf(Emax) - erf(Emin)) / eye.Range;
 				}
 			}
 			vector<pair<double, double>> cache;
@@ -149,8 +149,8 @@ protected:
 	};
 
 	struct Stronghold {
-		struct str { double PosX, PosZ, Prob; };
-		double Xmean, Xvar, Zmean, Zvar; vector<str> data;
+		struct str { double Prob, PosX, PosZ; };
+		double Xmean, Xsigma, Zmean, Zsigma; vector<str> data;
 		Stronghold(long long Base, long long Seed) {
 			thread_local Generator Source;
 			thread_local StrongholdIter Target;
@@ -158,14 +158,14 @@ protected:
 			applySeed(&Source, DIM_OVERWORLD, Seed);
 			initFirstStronghold(&Target, Base, Seed);
 			nextStronghold(&Target, &Source);
-			data.emplace_back(Target.pos.x, Target.pos.z, 1);
-			Xmean = Target.pos.x, Xvar = 0;
-			Zmean = Target.pos.z, Zvar = 0;
+			data.emplace_back(0, Target.pos.x, Target.pos.z);
+			Xmean = Target.pos.x, Xsigma = 0;
+			Zmean = Target.pos.z, Zsigma = 0;
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
 			vector<str> cache;
+			auto order = [](const str& pre, const str& next) { return pre.PosX != next.PosX ? pre.PosX < next.PosX : pre.PosZ < next.PosZ; };
 			for (const auto& eye : Source.data) {
-				auto order = [](const str& pre, const str& next) { return pre.PosX != next.PosX ? pre.PosX < next.PosX : pre.PosZ < next.PosZ; };
 				double Radius = hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid);
 				double Dmin = +numeric_limits<double>::infinity();
 				double Dmax = +numeric_limits<double>::infinity();
@@ -175,8 +175,8 @@ protected:
 					Dmax = fmin(Dmax, hypot(Radius * sin(Angle), fmax(Radius * cos(Angle) - ring.Rmin, ring.Rmax - Radius * cos(Angle))));
 				}
 				double Angle = eye.Yaw - Source.Emean;
-				double Amin = Angle - eye.Range - 4 * Source.Evar;
-				double Amax = Angle + eye.Range + 4 * Source.Evar;
+				double Amin = Angle - eye.Range - 4 * Source.Esigma;
+				double Amax = Angle + eye.Range + 4 * Source.Esigma;
 				double PosBox[] = { eye.PosX + Dmin * cos(Amin), eye.PosX + Dmax * cos(Amin), eye.PosX + Dmin * cos(Amax), eye.PosX + Dmax * cos(Amax) };
 				double Xmin = Base.Chunk * (round((ranges::min(PosBox) + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 				double Xmax = Base.Chunk * (round((ranges::max(PosBox) + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
@@ -202,27 +202,26 @@ protected:
 					Zmin = Base.Chunk * (round((Zmin + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					Zmax = Base.Chunk * (round((Zmax + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					for (double PosZ = Zmin; PosZ < Zmax; PosZ += Base.Chunk)
-						if (data.empty() or ranges::binary_search(data, str(PosX, PosZ, 0), order))
-							cache.emplace_back(PosX, PosZ, 0);
+						if (data.empty() or ranges::binary_search(data, str(0, PosX, PosZ), order))
+							cache.emplace_back(0, PosX, PosZ);
 				}
 				data.swap(cache), cache.clear();
 				if (data.empty()) break;
 			}
-			auto order = [](const str& pre, const str& next) { return pre.Prob > next.Prob; };
 			double Psum = 0, Xsum = 0, Xsum2 = 0, Zsum = 0, Zsum2 = 0;
 			for (auto& str : data) {
+				str.Prob = Source.solve(Base, str.PosX, str.PosZ), Psum += str.Prob;
 				str.PosX = Base.Chunk * floor(str.PosX / Base.Chunk) + Base.PosGen;
 				str.PosZ = Base.Chunk * floor(str.PosZ / Base.Chunk) + Base.PosGen;
-				str.Prob = Source.solve(Base, str.PosX, str.PosZ), Psum += str.Prob;
 			}
 			for (const auto& str : data) {
+				if (str.Prob > 0) cache.emplace_back(str.Prob / Psum, str.PosX, str.PosZ);
 				Xsum += str.PosX * str.Prob / Psum, Xsum2 += str.PosX * str.PosX * str.Prob / Psum;
 				Zsum += str.PosZ * str.Prob / Psum, Zsum2 += str.PosZ * str.PosZ * str.Prob / Psum;
-				if (str.Prob > 0) cache.emplace_back(str.PosX, str.PosZ, str.Prob / Psum);
 			}
-			Xmean = Xsum, Xvar = fmax(0, sqrt(Xsum2 - Xsum * Xsum));
-			Zmean = Zsum, Zvar = fmax(0, sqrt(Zsum2 - Zsum * Zsum));
-			data.swap(cache), ranges::sort(data, order);
+			Xmean = Xsum, Xsigma = fmax(0, sqrt(Xsum2 - Xsum * Xsum));
+			Zmean = Zsum, Zsigma = fmax(0, sqrt(Zsum2 - Zsum * Zsum));
+			data.swap(cache), ranges::sort(data, ranges::greater(), &str::Prob);
 		}
 	};
 
@@ -253,13 +252,13 @@ public:
 		case 1: Source.data.clear(); break;
 		case 2: Base = str2mc(Value[1].str().data()); break;
 		case 3: Seed = stoll(Value[1]), RNG.seed(stoll(Value[1])); break;
-		case 4: Source.Emean = pi/180 * stod(Value[1]), Source.Evar = pi/180 * stod(Value[2]); break;
+		case 4: Source.Emean = pi/180 * stod(Value[1]), Source.Esigma = pi/180 * stod(Value[2]); break;
 		case 5: Source.data.emplace_back(stod(Value[1]), stod(Value[2]), pi/180 * (stod(Value[3]) + 90), pi/3600); break;
 		case 6: Source.data.emplace_back(stod(Value[1]), stod(Value[3]), pi/180 * (stod(Value[4]) + 90), pi/36000); break;
 		default: return Output;
 		}
 		if (Index == 0) {
-			Output += format("VER: {0}, SEED: {1}, ERR: {2:.4f} ± {3:.4f}\n", mc2str(Base), Seed, 180/pi * Source.Emean, 180/pi * Source.Evar);
+			Output += format("VER: {0}  SEED: {1}  ERR: {2:.4f} ± {3:.4f}\n", mc2str(Base), Seed, 180/pi * Source.Emean, 180/pi * Source.Esigma);
 			for (const auto& eye : Source.data)
 				Output += format("#{0}: ({1:.1f}, {2:.1f}, {3:.2f} ± {4:.1g})\n", ++Index, eye.PosX, eye.PosZ, 180/pi * eye.Yaw - 90, 180/pi * eye.Range);
 		}
@@ -267,14 +266,14 @@ public:
 			const auto& str = Stronghold(Base, Seed).data[0];
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
 			double Error = Source.calib(Base, str.PosX, str.PosZ);
-			Output += format("#{0}: {1:.4f}, MEAN: {2:.4f}, SD: {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Evar);
+			Output += format("#{0}: {1:.4f}  MEAN: {2:.4f}  SD: {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Esigma);
 			Output += format("/tp {0:.2f} 240.00 {1:.2f}\n", str.PosX + 60 * cos(Angle), str.PosZ + 60 * sin(Angle));
 		}
 		else if (not Source.data.empty()) {
 			Stronghold Target(Base, Source);
 			for (const auto& str : Target.data)
 				Output += format("{0:>6.3f}% → ({1:.0f}, {2:.0f})\n", 100 * str.Prob, str.PosX, str.PosZ);
-			Output += format("({0:.0f} ± {1:.0f}, {2:.0f} ± {3:.0f})\n", Target.Xmean, Target.Xvar, Target.Zmean, Target.Zvar);
+			Output += format("({0:.0f} ± {1:.0f}, {2:.0f} ± {3:.0f})\n", Target.Xmean, Target.Xsigma, Target.Zmean, Target.Zsigma);
 		}
 		return Output;
 	}

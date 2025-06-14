@@ -17,7 +17,7 @@ protected:
 		Constants(long long Base) {
 			if (Base < MC_1_9) {
 				Chunk = 16, PosGen = 4, PosMid = 4;
-				data = {{460, 1332, 3, table7}};
+				data = {{ 460, 1332, 3, table7 }};
 			}
 			else if (Base < MC_1_13) {
 				Chunk = 16, PosGen = 4, PosMid = 0;
@@ -177,7 +177,7 @@ protected:
 				double Angle = eye.Yaw - Source.Emean;
 				double Amin = Angle - eye.Range - 4 * Source.Evar;
 				double Amax = Angle + eye.Range + 4 * Source.Evar;
-				double PosBox[] = {eye.PosX + Dmin * cos(Amin), eye.PosX + Dmax * cos(Amin), eye.PosX + Dmin * cos(Amax), eye.PosX + Dmax * cos(Amax)};
+				double PosBox[] = { eye.PosX + Dmin * cos(Amin), eye.PosX + Dmax * cos(Amin), eye.PosX + Dmin * cos(Amax), eye.PosX + Dmax * cos(Amax) };
 				double Xmin = Base.Chunk * (round((ranges::min(PosBox) + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 				double Xmax = Base.Chunk * (round((ranges::max(PosBox) + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 				for (double PosX = Xmin; PosX < Xmax; PosX += Base.Chunk) {

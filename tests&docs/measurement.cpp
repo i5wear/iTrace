@@ -13,7 +13,6 @@ using namespace numbers;
 int main() {
 	constexpr long long Base = MC_1_16, Seed = -1236314517;
 	constexpr double Emean = 0, Evar = 0.004, Count = 32;
-	default_random_engine RNG(Seed);
 	Generator Source; StrongholdIter Target;
 	setupGenerator(&Source, Base, false);
 	applySeed(&Source, DIM_OVERWORLD, Seed);
@@ -22,6 +21,7 @@ int main() {
 	double Offset = Base < MC_1_19 ? Base < MC_1_8 ? 0 : 4 : -4;
 	while (nextStronghold(&Target, &Source) > 0)
 		data.emplace_back(Target.pos.x + Offset, Target.pos.z + Offset);
+	default_random_engine RNG(Seed);
 	iTrace Instance; string Input;
 	ofstream save("data.txt", ios::noreplace);
 	Instance(format("VER {0}", mc2str(Base)));

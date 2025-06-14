@@ -25,5 +25,5 @@ int main() {
 	}
 	ofstream save("data.csv", ios::noreplace);
 	for (long long Index = 0; Index < (Rmax - Rmin) / Width; Index++)
-		save << format("{0},{1}", Rmin + Index * Width, Function[Index]) << endl;
+		save << Rmin + Index * Width << ',' << Function[Index] << endl;
 }

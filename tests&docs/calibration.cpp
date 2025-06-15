@@ -41,9 +41,7 @@ int main() {
 		}
 		if (Base < MC_1_13) Input = format("ADD {0:.2f} {1:.2f} {2:.1f}", PosX, PosZ, Yaw);
 		else Input = format("/execute in minecraft:overworld run tp @s {0:.2f} 240.00 {1:.2f} {2:.2f} -32.00", PosX, PosZ, Yaw);
-		Output = Instance(Input);
-		regex_match(Output, Value, Pattern);
-		Esum2 += stod(Value[1]) * stod(Value[1]);
+		Output = Instance(Input), regex_match(Output, Value, Pattern), Esum2 += stod(Value[1]) * stod(Value[1]);
 		save << Input << endl << Output << endl << format("SD(Ninjabrain Bot): {0:.4f}\n", sqrt(Esum2 / Index)) << endl;
 	}
 }

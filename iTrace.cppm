@@ -4,7 +4,6 @@ export import "cubiomes/finders.h";
 export import "cubiomes/util.h";
 using namespace std;
 using namespace numbers;
-#define VALUE " ([+-]?[0-9]+(?:[.][0-9]+)?)"
 
 export class iTrace {
 
@@ -229,7 +228,7 @@ private:
 
 	long long Base = MC_NEWEST, Seed = 0;
 
-	Endereyes Source = {pi/720, pi/3600};
+	Endereyes Source = { pi/720, pi/3600 };
 
 public:
 
@@ -237,11 +236,11 @@ public:
 		static regex Pattern[] = {
 			regex("CHECK", regex::icase),
 			regex("CLEAR", regex::icase),
-			regex("VER" VALUE, regex::icase),
-			regex("CAL" VALUE, regex::icase),
-			regex("ERR" VALUE VALUE, regex::icase),
-			regex("ADD" VALUE VALUE VALUE, regex::icase),
-			regex("/execute in (?:minecraft:)?overworld run tp @s" VALUE VALUE VALUE VALUE VALUE, regex::icase)
+			regex("VER (\\S+)", regex::icase),
+			regex("CAL (\\S+)", regex::icase),
+			regex("ERR (\\S+) (\\S+)", regex::icase),
+			regex("ADD (\\S+) (\\S+) (\\S+)", regex::icase),
+			regex("/execute in (?:minecraft:)?overworld run tp @s (\\S+) (\\S+) (\\S+) (\\S+) (\\S+)", regex::icase)
 		};
 		thread_local default_random_engine RNG;
 		size_t Index; smatch Value; string Output;
@@ -255,7 +254,7 @@ public:
 		case 4: Source.Emean = pi/180 * stod(Value[1]), Source.Esigma = pi/180 * stod(Value[2]); break;
 		case 5: Source.data.emplace_back(stod(Value[1]), stod(Value[2]), pi/180 * (stod(Value[3]) + 90), pi/3600); break;
 		case 6: Source.data.emplace_back(stod(Value[1]), stod(Value[3]), pi/180 * (stod(Value[4]) + 90), pi/36000); break;
-		default: return Output;
+		default: throw exception();
 		}
 		if (Index == 0) {
 			Output += format("VER: {0}  SEED: {1}  ERR: {2:.4f} ± {3:.4f}\n", mc2str(Base), Seed, 180/pi * Source.Emean, 180/pi * Source.Esigma);

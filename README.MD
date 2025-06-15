@@ -34,7 +34,7 @@ Program exit does not cause any data loss, as all inputs are auto saved and load
 
 添加末影之眼：ADD [X坐标] [Z坐标] [偏航角]
 
-设定游戏版本：VER [1.N]
+设定游戏版本：VER [版本]
 
 设定误差数值：ERR [平均数] [标准差]
 
@@ -50,9 +50,9 @@ Program exit does not cause any data loss, as all inputs are auto saved and load
 
 Add an ender eye: ADD [PosX] [PosZ] [Yaw]
 
-Set game version: VER [1.N]
+Set game version: VER [Version]
 
-Set error value: ERR [Mean] [SD]
+Set error value: ERR [Mean] [Sigma]
 
 Start calibration: CAL [Seed]
 

@@ -254,7 +254,7 @@ public:
 		case 4: Source.Emean = pi/180 * stod(Value[1]), Source.Esigma = pi/180 * stod(Value[2]); break;
 		case 5: Source.data.emplace_back(stod(Value[1]), stod(Value[2]), pi/180 * (stod(Value[3]) + 90), pi/3600); break;
 		case 6: Source.data.emplace_back(stod(Value[1]), stod(Value[3]), pi/180 * (stod(Value[4]) + 90), pi/36000); break;
-		default: throw exception();
+		default: throw invalid_argument("invalid iTrace input");
 		}
 		if (Index == 0) {
 			Output += format("VER: {0}  SEED: {1}  ERR: {2:.4f} ± {3:.4f}\n", mc2str(Base), Seed, 180/pi * Source.Emean, 180/pi * Source.Esigma);
@@ -265,7 +265,7 @@ public:
 			const auto& str = Stronghold(Base, Seed).data[0];
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
 			double Error = Source.calib(Base, str.PosX, str.PosZ);
-			Output += format("#{0}: {1:.4f}  MEAN: {2:.4f}  SD: {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Esigma);
+			Output += format("#{0}: {1:.4f} → ERR: {2:.4f} ± {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Esigma);
 			Output += format("/tp {0:.2f} 240.00 {1:.2f}\n", str.PosX + 60 * cos(Angle), str.PosZ + 60 * sin(Angle));
 		}
 		else if (not Source.data.empty()) {

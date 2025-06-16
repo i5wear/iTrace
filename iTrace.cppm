@@ -72,8 +72,8 @@ protected:
 				Esum += Error / data.size(), Esum2 += Error * Error / (data.size() - 1);
 				Rsum2 += eye.Range * eye.Range / data.size();
 			}
-			Esum2 -= Esum * Esum * data.size() / (data.size() - 1);
-			Emean = Esum, Esigma = fmax(0, sqrt(Esum2 - Rsum2 / 3));
+			Esum2 = fdim(Esum2, Esum * Esum * data.size() / (data.size() - 1));
+			Emean = Esum, Esigma = sqrt(fdim(Esum2, Rsum2 / 3));
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
@@ -132,9 +132,9 @@ protected:
 							}
 							ranges::sort(cache, ranges::less());
 							double Pmult = 1, Rmax = -numeric_limits<double>::infinity();
-							for (const auto& line : cache) {
-								Pmult -= Distr(fmax(Rmax, line.second)) - Distr(fmax(Rmax, line.first));
-								Rmax = fmax(Rmax, line.second);
+							for (const auto& pair : cache) {
+								Pmult -= Distr(fmax(Rmax, pair.second)) - Distr(fmax(Rmax, pair.first));
+								Rmax = fmax(Rmax, pair.second);
 							}
 							Prob *= Pmult, cache.clear();
 						}
@@ -162,8 +162,8 @@ protected:
 			Zmean = Target.pos.z, Zsigma = 0;
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
-			vector<str> cache;
-			auto order = [](const str& pre, const str& next) { return pre.PosX != next.PosX ? pre.PosX < next.PosX : pre.PosZ < next.PosZ; };
+			vector<pair<double, double>> cache;
+			double Psum = 0, Xsum = 0, Xsum2 = 0, Zsum = 0, Zsum2 = 0;
 			for (const auto& eye : Source.data) {
 				double Radius = hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid);
 				double Dmin = +numeric_limits<double>::infinity();
@@ -201,26 +201,21 @@ protected:
 					Zmin = Base.Chunk * (round((Zmin + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					Zmax = Base.Chunk * (round((Zmax + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					for (double PosZ = Zmin; PosZ < Zmax; PosZ += Base.Chunk)
-						if (data.empty() or ranges::binary_search(data, str(0, PosX, PosZ), order))
-							cache.emplace_back(0, PosX, PosZ);
+						if (not ranges::binary_search(cache, pair(PosX, PosZ), ranges::less()))
+							cache.emplace_back(PosX, PosZ), Psum += Source.solve(Base, PosX, PosZ);
 				}
-				data.swap(cache), cache.clear();
-				if (data.empty()) break;
 			}
-			double Psum = 0, Xsum = 0, Xsum2 = 0, Zsum = 0, Zsum2 = 0;
-			for (auto& str : data) {
-				str.Prob = Source.solve(Base, str.PosX, str.PosZ), Psum += str.Prob;
-				str.PosX = Base.Chunk * floor(str.PosX / Base.Chunk) + Base.PosGen;
-				str.PosZ = Base.Chunk * floor(str.PosZ / Base.Chunk) + Base.PosGen;
+			for (const auto& pair : cache) {
+				double Prob = Source.solve(Base, pair.first, pair.second) / Psum;
+				double PosX = Base.Chunk * floor(pair.first / Base.Chunk) + Base.PosGen;
+				double PosZ = Base.Chunk * floor(pair.second / Base.Chunk) + Base.PosGen;
+				Xsum += PosX * Prob, Xsum2 += PosX * PosX * Prob;
+				Zsum += PosZ * Prob, Zsum2 += PosZ * PosZ * Prob;
+				if (Prob > 0) data.emplace_back(Prob, PosX, PosZ);
 			}
-			for (const auto& str : data) {
-				if (str.Prob > 0) cache.emplace_back(str.Prob / Psum, str.PosX, str.PosZ);
-				Xsum += str.PosX * str.Prob / Psum, Xsum2 += str.PosX * str.PosX * str.Prob / Psum;
-				Zsum += str.PosZ * str.Prob / Psum, Zsum2 += str.PosZ * str.PosZ * str.Prob / Psum;
-			}
-			Xmean = Xsum, Xsigma = fmax(0, sqrt(Xsum2 - Xsum * Xsum));
-			Zmean = Zsum, Zsigma = fmax(0, sqrt(Zsum2 - Zsum * Zsum));
-			data.swap(cache), ranges::sort(data, ranges::greater(), &str::Prob);
+			Xmean = Xsum, Xsigma = sqrt(fdim(Xsum2, Xsum * Xsum));
+			Zmean = Zsum, Zsigma = sqrt(fdim(Zsum2, Zsum * Zsum));
+			ranges::sort(data, ranges::greater(), &str::Prob);
 		}
 	};
 

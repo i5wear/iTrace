@@ -24,19 +24,19 @@ int main() {
 	Instance(format("VER {0}", mc2str(Base)));
 	Instance(format("ERR {0} {1}", Emean, Esigma));
 	save << Instance("CHECK") << endl;
-	regex Pattern("#[0-9]+: (\\S+)  MEAN: (\\S+)  SD: (\\S+)\n/tp (\\S+) (\\S+) (\\S+)\n", regex::icase);
+	regex Pattern("#[0-9]+: (\\S+) → ERR: (\\S+) ± (\\S+)\n/tp (\\S+) 240.00 (\\S+)\n", regex::icase);
 	string Output; smatch Value; double Esum2 = 0;
 	Input = format("CAL {0}", Seed), Output = Instance(Input);
 	regex_match(Output, Value, Pattern);
 	save << Input << endl << Output << endl;
 	default_random_engine RNG(Seed);
 	for (double Index = 0; Index < Count; Index++) {
-		double PosX = stod(Value[4]), PosZ = stod(Value[6]);
+		double PosX = stod(Value[4]), PosZ = stod(Value[5]);
 		double Error = normal_distribution(Emean, Esigma)(RNG);
 		double Yaw = 0, Dmin = +numeric_limits<double>::infinity();
-		for (const auto& str : data) {
-			double Dist = hypot(str.first - PosX, str.second - PosZ);
-			double Angle = 180/pi * atan2(str.second - PosZ, str.first - PosX) - 90;
+		for (const auto& pair : data) {
+			double Dist = hypot(pair.first - PosX, pair.second - PosZ);
+			double Angle = 180/pi * atan2(pair.second - PosZ, pair.first - PosX) - 90;
 			if (Dist < Dmin) Dmin = Dist, Yaw = remainder(Angle + Error, 360);
 		}
 		if (Base < MC_1_13) Input = format("ADD {0:.2f} {1:.2f} {2:.1f}", PosX, PosZ, Yaw);

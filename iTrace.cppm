@@ -83,21 +83,19 @@ protected:
 			for (const auto& ring : Base.data)
 				if (Radius > ring.Rmin and Radius < ring.Rmax)
 					Prob = ring.Count * (ring.Rmax - ring.Rmin) / (Base.Chunk * Radius);
-			if (Prob == 0) return Prob;
 			double Dmin = +numeric_limits<double>::infinity();
 			double Dmax = -numeric_limits<double>::infinity();
-			for (const auto& eye : data) {
+			if (Prob > 0) for (const auto& eye : data) {
 				Dmin = fmin(Dmin, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) - hypot(PosX - eye.PosX, PosZ - eye.PosZ));
 				Dmax = fmax(Dmax, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) + hypot(PosX - eye.PosX, PosZ - eye.PosZ));
-				if (Esigma > 0) {
-					double Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
-					double Emin = (Error - Emean - eye.Range) / (sqrt2 * Esigma);
-					double Emax = (Error - Emean + eye.Range) / (sqrt2 * Esigma);
-					Prob *= Esigma * (erf(Emax) - erf(Emin)) / eye.Range;
-				}
+				double Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
+				double Emin = (Error - Emean - eye.Range) / sqrt2;
+				double Emax = (Error - Emean + eye.Range) / sqrt2;
+				if (Esigma > 0) Prob *= Esigma * (erf(Emax / Esigma) - erf(Emin / Esigma)) / eye.Range;
+				else if (Emin > 0 or Emax < 0) Prob = 0;
 			}
 			vector<pair<double, double>> cache;
-			for (const auto& ring : Base.data) {
+			if (Prob > 0) for (const auto& ring : Base.data) {
 				auto Distr = [&ring](double Radius) { return Radius < ring.Rmax ? Radius < ring.Rmin ? 0 : ring.Distr[size_t(Radius - ring.Rmin)] : 1; };
 				if (Radius > ring.Rmin and Radius < ring.Rmax) {
 					Prob *= Distr(Radius + 0.5 * Base.Chunk) - Distr(Radius - 0.5 * Base.Chunk);
@@ -205,7 +203,7 @@ protected:
 							cache.emplace_back(PosX, PosZ), Psum += Source.solve(Base, PosX, PosZ);
 				}
 			}
-			for (const auto& pair : cache) {
+			if (Psum > 0) for (const auto& pair : cache) {
 				double Prob = Source.solve(Base, pair.first, pair.second) / Psum;
 				double PosX = Base.Chunk * floor(pair.first / Base.Chunk) + Base.PosGen;
 				double PosZ = Base.Chunk * floor(pair.second / Base.Chunk) + Base.PosGen;

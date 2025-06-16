@@ -199,7 +199,7 @@ protected:
 					Zmin = Base.Chunk * (round((Zmin + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					Zmax = Base.Chunk * (round((Zmax + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					for (double PosZ = Zmin; PosZ < Zmax; PosZ += Base.Chunk)
-						if (not ranges::binary_search(cache, pair(PosX, PosZ), ranges::less()))
+						if (not ranges::contains(cache, pair(PosX, PosZ)))
 							cache.emplace_back(PosX, PosZ), Psum += Source.solve(Base, PosX, PosZ);
 				}
 			}
@@ -237,8 +237,7 @@ public:
 		};
 		thread_local default_random_engine RNG;
 		size_t Index; smatch Value; string Output;
-		for (Index = 0; Index < 7; Index++)
-			if (regex_match(Input, Value, Pattern[Index])) break;
+		for (Index = 0; Index < size(Pattern) and not regex_match(Input, Value, Pattern[Index]); Index++);
 		switch (Index) {
 		case 0: Index = 0; break;
 		case 1: Source.data.clear(); break;

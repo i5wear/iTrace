@@ -10,7 +10,7 @@ using namespace std;
 int main() {
 	constexpr long long Base = MC_1_20, Width = 128, Rmax = 25600, Smax = 1E4;
 	Generator Source; StrongholdIter Target;
-	long long Progress = 0, Count[Rmax / Width]{};
+	long long Progress = 1, Count[Rmax / Width]{};
 	for (long long Seed = 1; Seed <= Smax; Seed++) {
 		if (Seed == Progress * Smax / 100) cout << '|', Progress++;
 		setupGenerator(&Source, Base, false);

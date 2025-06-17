@@ -155,9 +155,9 @@ protected:
 			applySeed(&Source, DIM_OVERWORLD, Seed);
 			initFirstStronghold(&Target, Base, Seed);
 			nextStronghold(&Target, &Source);
-			data.emplace_back(Target.pos.x, Target.pos.z, 1);
 			Xmean = Target.pos.x, Xsigma = 0;
 			Zmean = Target.pos.z, Zsigma = 0;
+			data.emplace_back(Target.pos.x, Target.pos.z, 1);
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
 			vector<size_t> step; vector<vector<pair<double, double>>> cache;

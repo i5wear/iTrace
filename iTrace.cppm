@@ -162,7 +162,7 @@ protected:
 		Stronghold(const Constants& Base, const Endereyes& Source) {
 			vector<size_t> step; vector<vector<pair<double, double>>> cache;
 			for (const auto& eye : Source.data) {
-				step.emplace_back(0), cache.emplace_back();
+				step.emplace_back(), cache.emplace_back();
 				double Radius = hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid);
 				double Dmin = +numeric_limits<double>::infinity();
 				double Dmax = +numeric_limits<double>::infinity();
@@ -202,27 +202,30 @@ protected:
 						cache.back().emplace_back(PosX, PosZ);
 				}
 			}
-			step.emplace_back(0), cache.emplace_back();
-			double Psum = 0; LOOP: size_t IDmin = 0, IDmax = 0;
-			for (size_t Index = 0; Index + 1 < cache.size(); Index++) {
-				if (step[Index] == cache[Index].size()) goto EXIT;
-				else if (cache[Index][step[Index]] < cache[IDmin][step[IDmin]]) step[Index]++, IDmin = Index;
-				else if (cache[Index][step[Index]] < cache[IDmax][step[IDmax]]) step[Index]++;
-				else if (cache[Index][step[Index]] > cache[IDmax][step[IDmax]]) step[IDmax]++, IDmax = Index;
-			}
-			if (IDmin == IDmax) {
-				cache.back().emplace_back(cache[0][step[0]]);
-				Psum += Source.solve(Base, cache[0][step[0]].first, cache[0][step[0]].second);
-				for (size_t Index = 0; Index + 1 < cache.size(); step[Index++]++);
-			}
-			goto LOOP; EXIT: double Xsum1 = 0, Xsum2 = 0, Zsum1 = 0, Zsum2 = 0;
-			for (const auto& pair : cache.back()) {
-				double PosX = Base.Chunk * floor(pair.first / Base.Chunk) + Base.PosGen;
-				double PosZ = Base.Chunk * floor(pair.second / Base.Chunk) + Base.PosGen;
-				double Prob = Source.solve(Base, pair.first, pair.second) / Psum;
-				Xsum1 += PosX * Prob, Xsum2 += PosX * PosX * Prob;
-				Zsum1 += PosZ * Prob, Zsum2 += PosZ * PosZ * Prob;
-				if (Prob > 0) data.emplace_back(PosX, PosZ, Prob);
+			double Xsum1 = 0, Xsum2 = 0, Zsum1 = 0, Zsum2 = 0;
+			if (not cache.empty()) {
+				step.emplace_back(), cache.emplace_back();
+				double Psum = 0; LOOP: size_t IDmin = 0, IDmax = 0;
+				for (size_t Index = 0; Index + 1 < cache.size(); Index++) {
+					if (step[Index] == cache[Index].size()) goto EXIT;
+					else if (cache[Index][step[Index]] < cache[IDmin][step[IDmin]]) step[Index]++, IDmin = Index;
+					else if (cache[Index][step[Index]] < cache[IDmax][step[IDmax]]) step[Index]++;
+					else if (cache[Index][step[Index]] > cache[IDmax][step[IDmax]]) step[IDmax]++, IDmax = Index;
+				}
+				if (IDmin == IDmax) {
+					cache.back().emplace_back(cache[0][step[0]]);
+					Psum += Source.solve(Base, cache[0][step[0]].first, cache[0][step[0]].second);
+					for (size_t Index = 0; Index + 1 < cache.size(); step[Index++]++);
+				}
+				goto LOOP; EXIT:
+				for (const auto& pair : cache.back()) {
+					double PosX = Base.Chunk * floor(pair.first / Base.Chunk) + Base.PosGen;
+					double PosZ = Base.Chunk * floor(pair.second / Base.Chunk) + Base.PosGen;
+					double Prob = Source.solve(Base, pair.first, pair.second) / Psum;
+					Xsum1 += PosX * Prob, Xsum2 += PosX * PosX * Prob;
+					Zsum1 += PosZ * Prob, Zsum2 += PosZ * PosZ * Prob;
+					if (Prob > 0) data.emplace_back(PosX, PosZ, Prob);
+				}
 			}
 			Xmean = Xsum1, Xsigma = sqrt(fdim(Xsum2, Xsum1 * Xsum1));
 			Zmean = Zsum1, Zsigma = sqrt(fdim(Zsum2, Zsum1 * Zsum1));

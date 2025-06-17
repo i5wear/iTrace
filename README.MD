@@ -1,10 +1,10 @@
 # [iTrace](https://github.com/i5wear/iTrace)
 
-高精度的要塞计算器，改进了 Ninjabrain Bot 的算法。
+高精度的要塞计算器，改进了 [Ninjabrain Bot](https://github.com/Ninjabrain1/Ninjabrain-Bot) 的算法。
 
 其研发基于要塞生成的所有细节，均来自 [Cubiomes](https://github.com/Cubitect/Cubiomes)。
 
-An accurate stronghold calculator, which improved the algorithm of Ninjabrain Bot.
+An accurate stronghold calculator, which improved the algorithm of [Ninjabrain Bot](https://github.com/Ninjabrain1/Ninjabrain-Bot).
 
 Its development is based on all details of stronghold generation that come from [Cubiomes](https://github.com/Cubitect/Cubiomes).
 

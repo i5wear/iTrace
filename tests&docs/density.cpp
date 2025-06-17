@@ -17,13 +17,11 @@ int main() {
 		setupGenerator(&Source, Base, false);
 		applySeed(&Source, DIM_OVERWORLD, Seed);
 		initFirstStronghold(&Target, Base, Seed);
-		while (nextStronghold(&Target, &Source) > 0) {
-			long long Radius = hypot(Target.pos.x + 4, Target.pos.z + 4);
-			Function[Radius / Width]++;
-		}
+		while (nextStronghold(&Target, &Source) > 0)
+			Function[size_t(hypot(Target.pos.x + 4, Target.pos.z + 4) / Width)]++;
 	}
 	ofstream save("data.csv", ios::app);
 	save << mc2str(Base) << ',' << Smax << endl;
-	for (long long Index = 0; Index < Rmax / Width; Index++)
+	for (size_t Index = 0; Index < Rmax / Width; Index++)
 		save << Index * Width << ',' << Function[Index] << endl;
 }

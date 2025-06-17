@@ -66,14 +66,14 @@ protected:
 		double calib(const Constants& Base, double PosX, double PosZ) const {
 			PosX = Base.Chunk * (floor(PosX / Base.Chunk) + 0.5) - Base.PosMid;
 			PosZ = Base.Chunk * (floor(PosZ / Base.Chunk) + 0.5) - Base.PosMid;
-			double Error = 0, Esum = 0, Esum2 = 0, Rsum2 = 0;
+			double Error = 0, Esum1 = 0, Esum2 = 0, Rsum2 = 0;
 			for (const auto& eye : data) {
 				Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
-				Esum += Error / data.size(), Esum2 += Error * Error / (data.size() - 1);
+				Esum1 += Error / data.size(), Esum2 += Error * Error / (data.size() - 1);
 				Rsum2 += eye.Range * eye.Range / data.size();
 			}
-			Esum2 = fdim(Esum2, Esum * Esum * data.size() / (data.size() - 1));
-			Emean = Esum, Esigma = sqrt(fdim(Esum2, Rsum2 / 3));
+			Esum2 = fdim(Esum2, Esum1 * Esum1 * data.size() / (data.size() - 1));
+			Emean = Esum1, Esigma = sqrt(fdim(Esum2, Rsum2 / 3));
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
@@ -146,7 +146,7 @@ protected:
 	};
 
 	struct Stronghold {
-		struct str { double Prob, PosX, PosZ; };
+		struct str { double PosX, PosZ, Prob; };
 		double Xmean, Xsigma, Zmean, Zsigma; vector<str> data;
 		Stronghold(long long Base, long long Seed) {
 			thread_local Generator Source;
@@ -155,14 +155,14 @@ protected:
 			applySeed(&Source, DIM_OVERWORLD, Seed);
 			initFirstStronghold(&Target, Base, Seed);
 			nextStronghold(&Target, &Source);
-			data.emplace_back(0, Target.pos.x, Target.pos.z);
+			data.emplace_back(Target.pos.x, Target.pos.z, 1);
 			Xmean = Target.pos.x, Xsigma = 0;
 			Zmean = Target.pos.z, Zsigma = 0;
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
-			vector<pair<double, double>> cache;
-			double Psum = 0, Xsum = 0, Xsum2 = 0, Zsum = 0, Zsum2 = 0;
+			vector<vector<pair<double, double>>> cache; vector<size_t> order;
 			for (const auto& eye : Source.data) {
+				cache.emplace_back(), order.emplace_back(0);
 				double Radius = hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid);
 				double Dmin = +numeric_limits<double>::infinity();
 				double Dmax = +numeric_limits<double>::infinity();
@@ -199,20 +199,33 @@ protected:
 					Zmin = Base.Chunk * (round((Zmin + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					Zmax = Base.Chunk * (round((Zmax + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					for (double PosZ = Zmin; PosZ < Zmax; PosZ += Base.Chunk)
-						if (not ranges::contains(cache, pair(PosX, PosZ)))
-							cache.emplace_back(PosX, PosZ), Psum += Source.solve(Base, PosX, PosZ);
+						cache.back().emplace_back(PosX, PosZ);
 				}
 			}
-			if (Psum > 0) for (const auto& pair : cache) {
-				double Prob = Source.solve(Base, pair.first, pair.second) / Psum;
+			cache.emplace_back(), order.emplace_back(0);
+			double Psum = 0; LOOP: size_t IDmin = 0, IDmax = 0;
+			for (size_t Index = 0; Index + 1 < cache.size(); Index++) {
+				if (order[Index] == cache[Index].size()) goto EXIT;
+				else if (cache[Index][order[Index]] < cache[IDmin][order[IDmin]]) order[Index]++, IDmin = Index;
+				else if (cache[Index][order[Index]] < cache[IDmax][order[IDmax]]) order[Index]++;
+				else if (cache[Index][order[Index]] > cache[IDmax][order[IDmax]]) order[IDmax]++, IDmax = Index;
+			}
+			if (IDmin == IDmax) {
+				cache.back().emplace_back(cache[0][order[0]].first, cache[0][order[0]].second);
+				Psum += Source.solve(Base, cache[0][order[0]].first, cache[0][order[0]].second);
+				for (size_t Index = 0; Index + 1 < cache.size(); order[Index++]++);
+			}
+			goto LOOP; EXIT: double Xsum1 = 0, Xsum2 = 0, Zsum1 = 0, Zsum2 = 0;
+			if (Psum > 0) for (const auto& pair : cache.back()) {
 				double PosX = Base.Chunk * floor(pair.first / Base.Chunk) + Base.PosGen;
 				double PosZ = Base.Chunk * floor(pair.second / Base.Chunk) + Base.PosGen;
-				Xsum += PosX * Prob, Xsum2 += PosX * PosX * Prob;
-				Zsum += PosZ * Prob, Zsum2 += PosZ * PosZ * Prob;
-				if (Prob > 0) data.emplace_back(Prob, PosX, PosZ);
+				double Prob = Source.solve(Base, pair.first, pair.second) / Psum;
+				Xsum1 += PosX * Prob, Xsum2 += PosX * PosX * Prob;
+				Zsum1 += PosZ * Prob, Zsum2 += PosZ * PosZ * Prob;
+				if (Prob > 0) data.emplace_back(PosX, PosZ, Prob);
 			}
-			Xmean = Xsum, Xsigma = sqrt(fdim(Xsum2, Xsum * Xsum));
-			Zmean = Zsum, Zsigma = sqrt(fdim(Zsum2, Zsum * Zsum));
+			Xmean = Xsum1, Xsigma = sqrt(fdim(Xsum2, Xsum1 * Xsum1));
+			Zmean = Zsum1, Zsigma = sqrt(fdim(Zsum2, Zsum1 * Zsum1));
 			ranges::sort(data, ranges::greater(), &str::Prob);
 		}
 	};
@@ -254,7 +267,7 @@ public:
 				Output += format("#{0}: ({1:.1f}, {2:.1f}, {3:.2f} ± {4:.1g})\n", ++Index, eye.PosX, eye.PosZ, 180/pi * eye.Yaw - 90, 180/pi * eye.Range);
 		}
 		else if (Seed != 0) {
-			const auto& str = Stronghold(Base, Seed).data[0];
+			const auto& str = Stronghold(Base, Seed).data.back();
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
 			double Error = Source.calib(Base, str.PosX, str.PosZ);
 			Output += format("#{0}: {1:.4f} → ERR: {2:.4f} ± {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Esigma);

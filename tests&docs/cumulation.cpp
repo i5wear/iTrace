@@ -19,10 +19,10 @@ int main() {
 		initFirstStronghold(&Target, Base, Seed);
 		nextStronghold(&Target, &Source);
 		long long Radius = hypot(Target.pos.x + 4, Target.pos.z + 4);
-		for (long long Index = Radius / Width; Index < Rmax / Width; Function[Index++]++);
+		for (size_t Index = Radius / Width; Index < Rmax / Width; Function[Index++]++);
 	}
 	ofstream save("data.csv", ios::app);
 	save << mc2str(Base) << ',' << Smax << endl;
-	for (long long Index = 0; Index < Rmax / Width; Index++)
+	for (size_t Index = 0; Index < Rmax / Width; Index++)
 		save << Index * Width << ',' << Function[Index] << endl;
 }

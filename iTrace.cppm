@@ -16,7 +16,7 @@ protected:
 		Constants(long long Base) {
 			if (Base < MC_1_9) {
 				Chunk = 16, PosGen = 4, PosMid = 4;
-				data = {{ 460, 1332, 3, table7 }};
+				data.emplace_back(460, 1332, 3, table7);
 			}
 			else if (Base < MC_1_13) {
 				Chunk = 16, PosGen = 4, PosMid = 0;
@@ -160,9 +160,9 @@ protected:
 			Zmean = Target.pos.z, Zsigma = 0;
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
-			vector<vector<pair<double, double>>> cache; vector<size_t> order;
+			vector<size_t> step; vector<vector<pair<double, double>>> cache;
 			for (const auto& eye : Source.data) {
-				cache.emplace_back(), order.emplace_back(0);
+				step.emplace_back(0), cache.emplace_back();
 				double Radius = hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid);
 				double Dmin = +numeric_limits<double>::infinity();
 				double Dmax = +numeric_limits<double>::infinity();
@@ -202,18 +202,18 @@ protected:
 						cache.back().emplace_back(PosX, PosZ);
 				}
 			}
-			cache.emplace_back(), order.emplace_back(0);
+			step.emplace_back(0), cache.emplace_back();
 			double Psum = 0; LOOP: size_t IDmin = 0, IDmax = 0;
 			for (size_t Index = 0; Index + 1 < cache.size(); Index++) {
-				if (order[Index] == cache[Index].size()) goto EXIT;
-				else if (cache[Index][order[Index]] < cache[IDmin][order[IDmin]]) order[Index]++, IDmin = Index;
-				else if (cache[Index][order[Index]] < cache[IDmax][order[IDmax]]) order[Index]++;
-				else if (cache[Index][order[Index]] > cache[IDmax][order[IDmax]]) order[IDmax]++, IDmax = Index;
+				if (step[Index] == cache[Index].size()) goto EXIT;
+				else if (cache[Index][step[Index]] < cache[IDmin][step[IDmin]]) step[Index]++, IDmin = Index;
+				else if (cache[Index][step[Index]] < cache[IDmax][step[IDmax]]) step[Index]++;
+				else if (cache[Index][step[Index]] > cache[IDmax][step[IDmax]]) step[IDmax]++, IDmax = Index;
 			}
 			if (IDmin == IDmax) {
-				cache.back().emplace_back(cache[0][order[0]]);
-				Psum += Source.solve(Base, cache[0][order[0]].first, cache[0][order[0]].second);
-				for (size_t Index = 0; Index + 1 < cache.size(); order[Index++]++);
+				cache.back().emplace_back(cache[0][step[0]]);
+				Psum += Source.solve(Base, cache[0][step[0]].first, cache[0][step[0]].second);
+				for (size_t Index = 0; Index + 1 < cache.size(); step[Index++]++);
 			}
 			goto LOOP; EXIT: double Xsum1 = 0, Xsum2 = 0, Zsum1 = 0, Zsum2 = 0;
 			for (const auto& pair : cache.back()) {

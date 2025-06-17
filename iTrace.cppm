@@ -83,19 +83,19 @@ protected:
 			for (const auto& ring : Base.data)
 				if (Radius > ring.Rmin and Radius < ring.Rmax)
 					Prob = ring.Count * (ring.Rmax - ring.Rmin) / (Base.Chunk * Radius);
+			if (Prob == 0) return Prob;
 			double Dmin = +numeric_limits<double>::infinity();
 			double Dmax = -numeric_limits<double>::infinity();
-			if (Prob > 0) for (const auto& eye : data) {
+			for (const auto& eye : data) {
 				Dmin = fmin(Dmin, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) - hypot(PosX - eye.PosX, PosZ - eye.PosZ));
 				Dmax = fmax(Dmax, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) + hypot(PosX - eye.PosX, PosZ - eye.PosZ));
 				double Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
 				double Emin = (Error - Emean - eye.Range) / sqrt2;
 				double Emax = (Error - Emean + eye.Range) / sqrt2;
-				if (Esigma > 0) Prob *= Esigma * (erf(Emax / Esigma) - erf(Emin / Esigma)) / eye.Range;
-				else if (Emin > 0 or Emax < 0) Prob = 0;
+				Prob *= Esigma > 0 ? Esigma * (erf(Emax / Esigma) - erf(Emin / Esigma)) / eye.Range : Emin < 0 and Emax > 0;
 			}
 			vector<pair<double, double>> cache;
-			if (Prob > 0) for (const auto& ring : Base.data) {
+			for (const auto& ring : Base.data) {
 				auto Distr = [&ring](double Radius) { return Radius < ring.Rmax ? Radius < ring.Rmin ? 0 : ring.Distr[size_t(Radius - ring.Rmin)] : 1; };
 				if (Radius > ring.Rmin and Radius < ring.Rmax) {
 					Prob *= Distr(Radius + 0.5 * Base.Chunk) - Distr(Radius - 0.5 * Base.Chunk);
@@ -211,12 +211,12 @@ protected:
 				else if (cache[Index][order[Index]] > cache[IDmax][order[IDmax]]) order[IDmax]++, IDmax = Index;
 			}
 			if (IDmin == IDmax) {
-				cache.back().emplace_back(cache[0][order[0]].first, cache[0][order[0]].second);
+				cache.back().emplace_back(cache[0][order[0]]);
 				Psum += Source.solve(Base, cache[0][order[0]].first, cache[0][order[0]].second);
 				for (size_t Index = 0; Index + 1 < cache.size(); order[Index++]++);
 			}
 			goto LOOP; EXIT: double Xsum1 = 0, Xsum2 = 0, Zsum1 = 0, Zsum2 = 0;
-			if (Psum > 0) for (const auto& pair : cache.back()) {
+			for (const auto& pair : cache.back()) {
 				double PosX = Base.Chunk * floor(pair.first / Base.Chunk) + Base.PosGen;
 				double PosZ = Base.Chunk * floor(pair.second / Base.Chunk) + Base.PosGen;
 				double Prob = Source.solve(Base, pair.first, pair.second) / Psum;
@@ -250,7 +250,8 @@ public:
 		};
 		thread_local default_random_engine RNG;
 		size_t Index; smatch Value; string Output;
-		for (Index = 0; Index < size(Pattern) and not regex_match(Input, Value, Pattern[Index]); Index++);
+		for (Index = 0; Index < size(Pattern); Index++)
+			if (regex_match(Input, Value, Pattern[Index])) break;
 		switch (Index) {
 		case 0: Index = 0; break;
 		case 1: Source.data.clear(); break;

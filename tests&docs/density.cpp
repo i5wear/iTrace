@@ -10,18 +10,17 @@ using namespace std;
 int main() {
 	constexpr long long Base = MC_1_20, Width = 128, Rmax = 25600, Smax = 1E4;
 	Generator Source; StrongholdIter Target;
-	long long Progress = 0, Function[Rmax / Width]{};
+	long long Progress = 0, Count[Rmax / Width]{};
 	for (long long Seed = 1; Seed <= Smax; Seed++) {
-		if (Seed == Progress * Smax / 100)
-			cout << '|', Progress++;
+		if (Seed == Progress * Smax / 100) cout << '|', Progress++;
 		setupGenerator(&Source, Base, false);
 		applySeed(&Source, DIM_OVERWORLD, Seed);
 		initFirstStronghold(&Target, Base, Seed);
 		while (nextStronghold(&Target, &Source) > 0)
-			Function[size_t(hypot(Target.pos.x + 4, Target.pos.z + 4) / Width)]++;
+			Count[size_t(hypot(Target.pos.x + 4, Target.pos.z + 4) / Width)]++;
 	}
 	ofstream save("data.csv", ios::app);
 	save << mc2str(Base) << ',' << Smax << endl;
 	for (size_t Index = 0; Index < Rmax / Width; Index++)
-		save << Index * Width << ',' << Function[Index] << endl;
+		save << Index * Width << ',' << Count[Index] << endl;
 }

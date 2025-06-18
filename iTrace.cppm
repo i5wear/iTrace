@@ -10,69 +10,69 @@ export class iTrace {
 protected:
 
 	struct Constants {
-		struct ring { double Rmin, Rmax, Count, *Distr; };
-		double Chunk, PosGen, PosMid; vector<ring> data;
-		static double table7[], table12[], table16[];
+		struct Ring { double Rmin, Rmax, Count, *Distr; };
+		double Chunk, PosLoc, PosMid; vector<Ring> Data;
+		static double TABLE7[], TABLE12[], TABLE16[];
 		Constants(long long Base) {
 			if (Base < MC_1_9) {
-				Chunk = 16, PosGen = 4, PosMid = 4;
-				data.emplace_back(460, 1332, 3, table7);
+				Chunk = 16, PosLoc = 4, PosMid = 4;
+				Data.emplace_back(460, 1332, 3, TABLE7);
 			}
 			else if (Base < MC_1_13) {
-				Chunk = 16, PosGen = 4, PosMid = 0;
-				data = {
-					{  1228,  2868,  3, table12 },
-					{  4300,  5940,  6, table12 },
-					{  7372,  9012, 10, table12 },
-					{ 10444, 12084, 15, table12 },
-					{ 13516, 15156, 21, table12 },
-					{ 16588, 18228, 28, table12 },
-					{ 19660, 21300, 36, table12 },
-					{ 22732, 24372,  9, table12 }
+				Chunk = 16, PosLoc = 4, PosMid = 0;
+				Data = {
+					{  1228,  2868,  3, TABLE12 },
+					{  4300,  5940,  6, TABLE12 },
+					{  7372,  9012, 10, TABLE12 },
+					{ 10444, 12084, 15, TABLE12 },
+					{ 13516, 15156, 21, TABLE12 },
+					{ 16588, 18228, 28, TABLE12 },
+					{ 19660, 21300, 36, TABLE12 },
+					{ 22732, 24372,  9, TABLE12 }
 				};
 			}
 			else if (Base < MC_1_19) {
-				Chunk = 16, PosGen = 4, PosMid = 0;
-				data = {
-					{  1228,  2868,  3, table16 },
-					{  4300,  5940,  6, table16 },
-					{  7372,  9012, 10, table16 },
-					{ 10444, 12084, 15, table16 },
-					{ 13516, 15156, 21, table16 },
-					{ 16588, 18228, 28, table16 },
-					{ 19660, 21300, 36, table16 },
-					{ 22732, 24372,  9, table16 }
+				Chunk = 16, PosLoc = 4, PosMid = 0;
+				Data = {
+					{  1228,  2868,  3, TABLE16 },
+					{  4300,  5940,  6, TABLE16 },
+					{  7372,  9012, 10, TABLE16 },
+					{ 10444, 12084, 15, TABLE16 },
+					{ 13516, 15156, 21, TABLE16 },
+					{ 16588, 18228, 28, TABLE16 },
+					{ 19660, 21300, 36, TABLE16 },
+					{ 22732, 24372,  9, TABLE16 }
 				};
 			}
 			else {
-				Chunk = 16, PosGen = 4, PosMid = 8;
-				data = {
-					{  1228,  2868,  3, table16 },
-					{  4300,  5940,  6, table16 },
-					{  7372,  9012, 10, table16 },
-					{ 10444, 12084, 15, table16 },
-					{ 13516, 15156, 21, table16 },
-					{ 16588, 18228, 28, table16 },
-					{ 19660, 21300, 36, table16 },
-					{ 22732, 24372,  9, table16 }
+				Chunk = 16, PosLoc = 4, PosMid = 8;
+				Data = {
+					{  1228,  2868,  3, TABLE16 },
+					{  4300,  5940,  6, TABLE16 },
+					{  7372,  9012, 10, TABLE16 },
+					{ 10444, 12084, 15, TABLE16 },
+					{ 13516, 15156, 21, TABLE16 },
+					{ 16588, 18228, 28, TABLE16 },
+					{ 19660, 21300, 36, TABLE16 },
+					{ 22732, 24372,  9, TABLE16 }
 				};
 			}
 		}
 	};
 
 	struct Endereyes {
-		struct eye { double PosX, PosZ, Yaw, Range; };
-		mutable double Emean, Esigma; vector<eye> data;
+		struct Line { double PosX, PosZ, Yaw, Range; };
+		mutable double Emean, Esigma; vector<Line> Data;
 		double calib(const Constants& Base, double PosX, double PosZ) const {
 			PosX = Base.Chunk * (floor(PosX / Base.Chunk) + 0.5) - Base.PosMid;
 			PosZ = Base.Chunk * (floor(PosZ / Base.Chunk) + 0.5) - Base.PosMid;
 			double Error = 0, Esum1 = 0, Esum2 = 0, Rsum2 = 0;
-			for (const auto& eye : data) {
-				Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
-				Esum1 += Error / data.size(), Esum2 += Error * Error / (data.size() - 1);
-				Rsum2 += eye.Range * eye.Range / data.size();
+			for (const auto& Line : Data) {
+				Error = remainder(Line.Yaw - atan2(PosZ - Line.PosZ, PosX - Line.PosX), 2 * pi);
+				Esum1 += Error / Data.size(), Esum2 += Error * Error / (Data.size() - 1);
+				Rsum2 += Line.Range * Line.Range / Data.size();
 			}
-			Esum2 = fdim(Esum2, Esum1 * Esum1 * data.size() / (data.size() - 1));
+			Esum2 = fdim(Esum2, Esum1 * Esum1 * Data.size() / (Data.size() - 1));
 			Emean = Esum1, Esigma = sqrt(fdim(Esum2, Rsum2 / 3));
 			return Error;
 		}
@@ -80,61 +80,61 @@ protected:
 			PosX = Base.Chunk * (floor(PosX / Base.Chunk) + 0.5) - Base.PosMid;
 			PosZ = Base.Chunk * (floor(PosZ / Base.Chunk) + 0.5) - Base.PosMid;
 			double Prob = 0, Radius = hypot(PosX + Base.PosMid, PosZ + Base.PosMid);
-			for (const auto& ring : Base.data)
-				if (Radius > ring.Rmin and Radius < ring.Rmax)
-					Prob = ring.Count * (ring.Rmax - ring.Rmin) / (Base.Chunk * Radius);
+			for (const auto& Ring : Base.Data)
+				if (Radius > Ring.Rmin and Radius < Ring.Rmax)
+					Prob = Ring.Count * (Ring.Rmax - Ring.Rmin) / (Base.Chunk * Radius);
 			if (Prob == 0) return Prob;
 			double Dmin = +numeric_limits<double>::infinity();
 			double Dmax = -numeric_limits<double>::infinity();
-			for (const auto& eye : data) {
-				Dmin = fmin(Dmin, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) - hypot(PosX - eye.PosX, PosZ - eye.PosZ));
-				Dmax = fmax(Dmax, hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid) + hypot(PosX - eye.PosX, PosZ - eye.PosZ));
-				double Error = remainder(eye.Yaw - atan2(PosZ - eye.PosZ, PosX - eye.PosX), 2 * pi);
-				double Emin = (Error - Emean - eye.Range) / sqrt2;
-				double Emax = (Error - Emean + eye.Range) / sqrt2;
-				Prob *= Esigma > 0 ? Esigma * (erf(Emax / Esigma) - erf(Emin / Esigma)) / eye.Range : Emin < 0 and Emax > 0;
+			for (const auto& Line : Data) {
+				Dmin = fmin(Dmin, hypot(Line.PosX + Base.PosMid, Line.PosZ + Base.PosMid) - hypot(PosX - Line.PosX, PosZ - Line.PosZ));
+				Dmax = fmax(Dmax, hypot(Line.PosX + Base.PosMid, Line.PosZ + Base.PosMid) + hypot(PosX - Line.PosX, PosZ - Line.PosZ));
+				double Error = remainder(Line.Yaw - atan2(PosZ - Line.PosZ, PosX - Line.PosX), 2 * pi);
+				double Emin = (Error - Emean - Line.Range) / sqrt2;
+				double Emax = (Error - Emean + Line.Range) / sqrt2;
+				Prob *= Esigma > 0 ? Esigma * (erf(Emax / Esigma) - erf(Emin / Esigma)) / Line.Range : Emin < 0 and Emax > 0;
 			}
-			vector<pair<double, double>> cache;
-			for (const auto& ring : Base.data) {
-				auto Distr = [&ring](double Radius) { return Radius < ring.Rmax ? Radius < ring.Rmin ? 0 : ring.Distr[size_t(Radius - ring.Rmin)] : 1; };
-				if (Radius > ring.Rmin and Radius < ring.Rmax) {
+			vector<pair<double, double>> Cache;
+			for (const auto& Ring : Base.Data) {
+				auto Distr = [&Ring](double Radius) { return Radius < Ring.Rmax ? Radius < Ring.Rmin ? 0 : Ring.Distr[size_t(Radius - Ring.Rmin)] : 1; };
+				if (Radius > Ring.Rmin and Radius < Ring.Rmax) {
 					Prob *= Distr(Radius + 0.5 * Base.Chunk) - Distr(Radius - 0.5 * Base.Chunk);
-					for (double Index = 1; Index < ring.Count; Index++) {
-						double Angle = 2 * pi * Index / ring.Count + atan2(PosZ, PosX);
-						for (const auto& eye : data) {
-							double Scale = (PosX + Base.PosMid) * (eye.PosX + Base.PosMid) + (PosZ + Base.PosMid) * (eye.PosZ + Base.PosMid);
-							double Coeff = (eye.PosX + Base.PosMid) * cos(Angle) + (eye.PosZ + Base.PosMid) * sin(Angle);
+					for (double Index = 1; Index < Ring.Count; Index++) {
+						double Angle = 2 * pi * Index / Ring.Count + atan2(PosZ, PosX);
+						for (const auto& Line : Data) {
+							double Scale = (PosX + Base.PosMid) * (Line.PosX + Base.PosMid) + (PosZ + Base.PosMid) * (Line.PosZ + Base.PosMid);
+							double Coeff = (Line.PosX + Base.PosMid) * cos(Angle) + (Line.PosZ + Base.PosMid) * sin(Angle);
 							double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
-							if (Delta > 0) cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
+							if (Delta > 0) Cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 						}
-						ranges::sort(cache, ranges::less());
+						ranges::sort(Cache, ranges::less());
 						double Pmult = 1, Rmax = -numeric_limits<double>::infinity();
-						for (const auto& line : cache) {
-							Pmult -= Distr(fmax(Rmax, line.second)) - Distr(fmax(Rmax, line.first));
-							Rmax = fmax(Rmax, line.second);
+						for (const auto& Pair : Cache) {
+							Pmult -= Distr(fmax(Rmax, Pair.second)) - Distr(fmax(Rmax, Pair.first));
+							Rmax = fmax(Rmax, Pair.second);
 						}
-						Prob *= Pmult, cache.clear();
+						Prob *= Pmult, Cache.clear();
 					}
 				}
-				else if (Dmax > ring.Rmin and Dmin < ring.Rmax) {
-					double Psum = 0, Count = round(pi * (ring.Rmin + ring.Rmax) / (Base.Chunk * ring.Count));
+				else if (Dmax > Ring.Rmin and Dmin < Ring.Rmax) {
+					double Psum = 0, Count = round(pi * (Ring.Rmin + Ring.Rmax) / (Base.Chunk * Ring.Count));
 					for (double Step = 0.5; Step < Count; Step++) {
 						double Prob = 1 / Count;
-						for (double Index = 0; Index < ring.Count; Index++) {
-							double Angle = 2 * pi * (Index + Step / Count) / ring.Count;
-							for (const auto& eye : data) {
-								double Scale = (PosX + Base.PosMid) * (eye.PosX + Base.PosMid) + (PosZ + Base.PosMid) * (eye.PosZ + Base.PosMid);
-								double Coeff = (eye.PosX + Base.PosMid) * cos(Angle) + (eye.PosZ + Base.PosMid) * sin(Angle);
+						for (double Index = 0; Index < Ring.Count; Index++) {
+							double Angle = 2 * pi * (Index + Step / Count) / Ring.Count;
+							for (const auto& Line : Data) {
+								double Scale = (PosX + Base.PosMid) * (Line.PosX + Base.PosMid) + (PosZ + Base.PosMid) * (Line.PosZ + Base.PosMid);
+								double Coeff = (Line.PosX + Base.PosMid) * cos(Angle) + (Line.PosZ + Base.PosMid) * sin(Angle);
 								double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
-								if (Delta > 0) cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
+								if (Delta > 0) Cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 							}
-							ranges::sort(cache, ranges::less());
+							ranges::sort(Cache, ranges::less());
 							double Pmult = 1, Rmax = -numeric_limits<double>::infinity();
-							for (const auto& pair : cache) {
-								Pmult -= Distr(fmax(Rmax, pair.second)) - Distr(fmax(Rmax, pair.first));
-								Rmax = fmax(Rmax, pair.second);
+							for (const auto& Pair : Cache) {
+								Pmult -= Distr(fmax(Rmax, Pair.second)) - Distr(fmax(Rmax, Pair.first));
+								Rmax = fmax(Rmax, Pair.second);
 							}
-							Prob *= Pmult, cache.clear();
+							Prob *= Pmult, Cache.clear();
 						}
 						Psum += Prob;
 					}
@@ -146,8 +146,8 @@ protected:
 	};
 
 	struct Stronghold {
-		struct str { double PosX, PosZ, Prob; };
-		double Xmean, Xsigma, Zmean, Zsigma; vector<str> data;
+		struct Point { double PosX, PosZ, Prob; };
+		double Xmean, Xsigma, Zmean, Zsigma; vector<Point> Data;
 		Stronghold(long long Base, long long Seed) {
 			thread_local Generator Source;
 			thread_local StrongholdIter Target;
@@ -157,79 +157,79 @@ protected:
 			nextStronghold(&Target, &Source);
 			Xmean = Target.pos.x, Xsigma = 0;
 			Zmean = Target.pos.z, Zsigma = 0;
-			data.emplace_back(Target.pos.x, Target.pos.z, 1);
+			Data.emplace_back(Target.pos.x, Target.pos.z, 1);
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
-			vector<size_t> step; vector<vector<pair<double, double>>> cache;
-			for (const auto& eye : Source.data) {
-				step.emplace_back(), cache.emplace_back();
-				double Radius = hypot(eye.PosX + Base.PosMid, eye.PosZ + Base.PosMid);
+			vector<size_t> Step; vector<vector<pair<double, double>>> Cache;
+			for (const auto& Line : Source.Data) {
+				Step.emplace_back(), Cache.emplace_back();
+				double Radius = hypot(Line.PosX + Base.PosMid, Line.PosZ + Base.PosMid);
 				double Dmin = +numeric_limits<double>::infinity();
 				double Dmax = +numeric_limits<double>::infinity();
-				for (const auto& ring : Base.data) {
-					double Angle = pi / ring.Count;
-					Dmin = fmin(Dmin, Radius < ring.Rmax ? Radius < ring.Rmin ? ring.Rmin - Radius : 0 : Radius - ring.Rmax);
-					Dmax = fmin(Dmax, hypot(Radius * sin(Angle), fmax(Radius * cos(Angle) - ring.Rmin, ring.Rmax - Radius * cos(Angle))));
+				for (const auto& Ring : Base.Data) {
+					double Angle = pi / Ring.Count;
+					Dmin = fmin(Dmin, Radius < Ring.Rmax ? Radius < Ring.Rmin ? Ring.Rmin - Radius : 0 : Radius - Ring.Rmax);
+					Dmax = fmin(Dmax, hypot(Radius * sin(Angle), fmax(Radius * cos(Angle) - Ring.Rmin, Ring.Rmax - Radius * cos(Angle))));
 				}
-				double Angle = eye.Yaw - Source.Emean;
-				double Amin = Angle - eye.Range - 4 * Source.Esigma;
-				double Amax = Angle + eye.Range + 4 * Source.Esigma;
-				double PosBox[] = { eye.PosX + Dmin * cos(Amin), eye.PosX + Dmax * cos(Amin), eye.PosX + Dmin * cos(Amax), eye.PosX + Dmax * cos(Amax) };
+				double Angle = Line.Yaw - Source.Emean;
+				double Amin = Angle - Line.Range - 4 * Source.Esigma;
+				double Amax = Angle + Line.Range + 4 * Source.Esigma;
+				double PosBox[] = { Line.PosX + Dmin * cos(Amin), Line.PosX + Dmax * cos(Amin), Line.PosX + Dmin * cos(Amax), Line.PosX + Dmax * cos(Amax) };
 				double Xmin = Base.Chunk * (round((ranges::min(PosBox) + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 				double Xmax = Base.Chunk * (round((ranges::max(PosBox) + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 				for (double PosX = Xmin; PosX < Xmax; PosX += Base.Chunk) {
 					double Zmin = +numeric_limits<double>::infinity();
 					double Zmax = -numeric_limits<double>::infinity();
 					if (PosX > fmin(PosBox[0], PosBox[1]) and PosX < fmax(PosBox[0], PosBox[1])) {
-						Zmin = fmin(Zmin, eye.PosZ + (PosX - eye.PosX) * tan(Amin));
-						Zmax = fmax(Zmax, eye.PosZ + (PosX - eye.PosX) * tan(Amin));
+						Zmin = fmin(Zmin, Line.PosZ + (PosX - Line.PosX) * tan(Amin));
+						Zmax = fmax(Zmax, Line.PosZ + (PosX - Line.PosX) * tan(Amin));
 					}
 					if (PosX > fmin(PosBox[2], PosBox[3]) and PosX < fmax(PosBox[2], PosBox[3])) {
-						Zmin = fmin(Zmin, eye.PosZ + (PosX - eye.PosX) * tan(Amax));
-						Zmax = fmax(Zmax, eye.PosZ + (PosX - eye.PosX) * tan(Amax));
+						Zmin = fmin(Zmin, Line.PosZ + (PosX - Line.PosX) * tan(Amax));
+						Zmax = fmax(Zmax, Line.PosZ + (PosX - Line.PosX) * tan(Amax));
 					}
 					if (PosX > fmin(PosBox[0], PosBox[2]) and PosX < fmax(PosBox[0], PosBox[2])) {
-						Zmin = fmin(Zmin, eye.PosZ + Dmin / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
-						Zmax = fmax(Zmax, eye.PosZ + Dmin / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
+						Zmin = fmin(Zmin, Line.PosZ + Dmin / sin(Angle) - (PosX - Line.PosX) / tan(Angle));
+						Zmax = fmax(Zmax, Line.PosZ + Dmin / sin(Angle) - (PosX - Line.PosX) / tan(Angle));
 					}
 					if (PosX > fmin(PosBox[1], PosBox[3]) and PosX < fmax(PosBox[1], PosBox[3])) {
-						Zmin = fmin(Zmin, eye.PosZ + Dmax / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
-						Zmax = fmax(Zmax, eye.PosZ + Dmax / sin(Angle) - (PosX - eye.PosX) / tan(Angle));
+						Zmin = fmin(Zmin, Line.PosZ + Dmax / sin(Angle) - (PosX - Line.PosX) / tan(Angle));
+						Zmax = fmax(Zmax, Line.PosZ + Dmax / sin(Angle) - (PosX - Line.PosX) / tan(Angle));
 					}
 					Zmin = Base.Chunk * (round((Zmin + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					Zmax = Base.Chunk * (round((Zmax + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					for (double PosZ = Zmin; PosZ < Zmax; PosZ += Base.Chunk)
-						cache.back().emplace_back(PosX, PosZ);
+						Cache.back().emplace_back(PosX, PosZ);
 				}
 			}
 			double Xsum1 = 0, Xsum2 = 0, Zsum1 = 0, Zsum2 = 0;
-			if (not cache.empty()) {
-				step.emplace_back(), cache.emplace_back();
+			if (not Cache.empty()) {
+				Step.emplace_back(), Cache.emplace_back();
 				double Psum = 0; LOOP: size_t IDmin = 0, IDmax = 0;
-				for (size_t Index = 0; Index + 1 < cache.size(); Index++) {
-					if (step[Index] == cache[Index].size()) goto EXIT;
-					else if (cache[Index][step[Index]] < cache[IDmin][step[IDmin]]) step[Index]++, IDmin = Index;
-					else if (cache[Index][step[Index]] < cache[IDmax][step[IDmax]]) step[Index]++;
-					else if (cache[Index][step[Index]] > cache[IDmax][step[IDmax]]) step[IDmax]++, IDmax = Index;
+				for (size_t Index = 0; Index + 1 < Cache.size(); Index++) {
+					if (Step[Index] == Cache[Index].size()) goto EXIT;
+					else if (Cache[Index][Step[Index]] < Cache[IDmin][Step[IDmin]]) Step[Index]++, IDmin = Index;
+					else if (Cache[Index][Step[Index]] < Cache[IDmax][Step[IDmax]]) Step[Index]++;
+					else if (Cache[Index][Step[Index]] > Cache[IDmax][Step[IDmax]]) Step[IDmax]++, IDmax = Index;
 				}
 				if (IDmin == IDmax) {
-					cache.back().emplace_back(cache[0][step[0]]);
-					Psum += Source.solve(Base, cache[0][step[0]].first, cache[0][step[0]].second);
-					for (size_t Index = 0; Index + 1 < cache.size(); step[Index++]++);
+					Cache.back().emplace_back(Cache[0][Step[0]]);
+					Psum += Source.solve(Base, Cache[0][Step[0]].first, Cache[0][Step[0]].second);
+					for (size_t Index = 0; Index + 1 < Cache.size(); Step[Index++]++);
 				}
 				goto LOOP; EXIT:
-				for (const auto& pair : cache.back()) {
-					double PosX = Base.Chunk * floor(pair.first / Base.Chunk) + Base.PosGen;
-					double PosZ = Base.Chunk * floor(pair.second / Base.Chunk) + Base.PosGen;
-					double Prob = Source.solve(Base, pair.first, pair.second) / Psum;
+				for (const auto& Pair : Cache.back()) {
+					double PosX = Base.Chunk * floor(Pair.first / Base.Chunk) + Base.PosLoc;
+					double PosZ = Base.Chunk * floor(Pair.second / Base.Chunk) + Base.PosLoc;
+					double Prob = Source.solve(Base, Pair.first, Pair.second) / Psum;
 					Xsum1 += PosX * Prob, Xsum2 += PosX * PosX * Prob;
 					Zsum1 += PosZ * Prob, Zsum2 += PosZ * PosZ * Prob;
-					if (Prob > 0) data.emplace_back(PosX, PosZ, Prob);
+					if (Prob > 0) Data.emplace_back(PosX, PosZ, Prob);
 				}
 			}
 			Xmean = Xsum1, Xsigma = sqrt(fdim(Xsum2, Xsum1 * Xsum1));
 			Zmean = Zsum1, Zsigma = sqrt(fdim(Zsum2, Zsum1 * Zsum1));
-			ranges::sort(data, ranges::greater(), &str::Prob);
+			ranges::sort(Data, ranges::greater(), &Point::Prob);
 		}
 	};
 
@@ -257,30 +257,30 @@ public:
 			if (regex_match(Input, Value, Pattern[Index])) break;
 		switch (Index) {
 		case 0: Index = 0; break;
-		case 1: Source.data.clear(); break;
+		case 1: Source.Data.clear(); break;
 		case 2: Base = str2mc(Value[1].str().data()); break;
 		case 3: Seed = stoll(Value[1]), RNG.seed(stoll(Value[1])); break;
 		case 4: Source.Emean = pi/180 * stod(Value[1]), Source.Esigma = pi/180 * stod(Value[2]); break;
-		case 5: Source.data.emplace_back(stod(Value[1]), stod(Value[2]), pi/180 * (stod(Value[3]) + 90), pi/3600); break;
-		case 6: Source.data.emplace_back(stod(Value[1]), stod(Value[3]), pi/180 * (stod(Value[4]) + 90), pi/36000); break;
+		case 5: Source.Data.emplace_back(stod(Value[1]), stod(Value[2]), pi/180 * (stod(Value[3]) + 90), pi/3600); break;
+		case 6: Source.Data.emplace_back(stod(Value[1]), stod(Value[3]), pi/180 * (stod(Value[4]) + 90), pi/36000); break;
 		default: throw invalid_argument("invalid iTrace input");
 		}
 		if (Index == 0) {
 			Output += format("VER: {0}  SEED: {1}  ERR: {2:.4f} ± {3:.4f}\n", mc2str(Base), Seed, 180/pi * Source.Emean, 180/pi * Source.Esigma);
-			for (const auto& eye : Source.data)
-				Output += format("#{0}: ({1:.1f}, {2:.1f}, {3:.2f} ± {4:.1g})\n", ++Index, eye.PosX, eye.PosZ, 180/pi * eye.Yaw - 90, 180/pi * eye.Range);
+			for (const auto& Line : Source.Data)
+				Output += format("#{0}: ({1:.1f}, {2:.1f}, {3:.2f} ± {4:.1g})\n", ++Index, Line.PosX, Line.PosZ, 180/pi * Line.Yaw - 90, 180/pi * Line.Range);
 		}
 		else if (Seed != 0) {
-			const auto& str = Stronghold(Base, Seed).data.back();
+			const auto& Target = Stronghold(Base, Seed).Data.back();
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
-			double Error = Source.calib(Base, str.PosX, str.PosZ);
-			Output += format("#{0}: {1:.4f} → ERR: {2:.4f} ± {3:.4f}\n", Source.data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Esigma);
-			Output += format("/tp {0:.2f} 240.00 {1:.2f}\n", str.PosX + 60 * cos(Angle), str.PosZ + 60 * sin(Angle));
+			double Error = Source.calib(Base, Target.PosX, Target.PosZ);
+			Output += format("#{0}: {1:.4f} → ERR: {2:.4f} ± {3:.4f}\n", Source.Data.size(), 180/pi * Error, 180/pi * Source.Emean, 180/pi * Source.Esigma);
+			Output += format("/tp {0:.2f} 240.00 {1:.2f}\n", Target.PosX + 60 * cos(Angle), Target.PosZ + 60 * sin(Angle));
 		}
-		else if (not Source.data.empty()) {
+		else if (not Source.Data.empty()) {
 			Stronghold Target(Base, Source);
-			for (const auto& str : Target.data)
-				Output += format("{0:>6.3f}% → ({1:.0f}, {2:.0f})\n", 100 * str.Prob, str.PosX, str.PosZ);
+			for (const auto& Point : Target.Data)
+				Output += format("{0:>6.3f}% → ({1:.0f}, {2:.0f})\n", 100 * Point.Prob, Point.PosX, Point.PosZ);
 			Output += format("({0:.0f} ± {1:.0f}, {2:.0f} ± {3:.0f})\n", Target.Xmean, Target.Xsigma, Target.Zmean, Target.Zsigma);
 		}
 		return Output;

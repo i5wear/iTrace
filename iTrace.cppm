@@ -10,9 +10,9 @@ export class iTrace {
 protected:
 
 	struct Constants {
-		struct Ring { double Rmin, Rmax, Count, *Distr; };
+		struct Ring { double Rmin, Rmax, Count; const double* Distr; };
 		double Chunk, PosLoc, PosMid; vector<Ring> Data;
-		static double TABLE7[], TABLE12[], TABLE16[];
+		static const double TABLE7[], TABLE12[], TABLE16[];
 		Constants(long long Base) {
 			if (Base < MC_1_9) {
 				Chunk = 16, PosLoc = 4, PosMid = 4;
@@ -83,21 +83,21 @@ protected:
 			for (const auto& Ring : Base.Data)
 				if (Radius > Ring.Rmin and Radius < Ring.Rmax)
 					Prob = Ring.Count * (Ring.Rmax - Ring.Rmin) / (Base.Chunk * Radius);
-			if (Prob == 0) return Prob;
 			double Dmin = +numeric_limits<double>::infinity();
 			double Dmax = -numeric_limits<double>::infinity();
 			for (const auto& Line : Data) {
+				double Error = remainder(Line.Yaw - atan2(PosZ - Line.PosZ, PosX - Line.PosX), 2 * pi);
+				double Emin = (Error - Emean - Line.Range) / (sqrt2 * Esigma);
+				double Emax = (Error - Emean + Line.Range) / (sqrt2 * Esigma);
+				Prob *= Esigma > 0 ? Esigma * (erf(Emax) - erf(Emin)) / Line.Range : Emin < 0 and Emax > 0;
 				Dmin = fmin(Dmin, hypot(Line.PosX + Base.PosMid, Line.PosZ + Base.PosMid) - hypot(PosX - Line.PosX, PosZ - Line.PosZ));
 				Dmax = fmax(Dmax, hypot(Line.PosX + Base.PosMid, Line.PosZ + Base.PosMid) + hypot(PosX - Line.PosX, PosZ - Line.PosZ));
-				double Error = remainder(Line.Yaw - atan2(PosZ - Line.PosZ, PosX - Line.PosX), 2 * pi);
-				double Emin = (Error - Emean - Line.Range) / sqrt2;
-				double Emax = (Error - Emean + Line.Range) / sqrt2;
-				Prob *= Esigma > 0 ? Esigma * (erf(Emax / Esigma) - erf(Emin / Esigma)) / Line.Range : Emin < 0 and Emax > 0;
 			}
-			vector<pair<double, double>> Cache;
+			vector<pair<double, double>> Interval;
 			for (const auto& Ring : Base.Data) {
 				auto Distr = [&Ring](double Radius) { return Radius < Ring.Rmax ? Radius < Ring.Rmin ? 0 : Ring.Distr[size_t(Radius - Ring.Rmin)] : 1; };
-				if (Radius > Ring.Rmin and Radius < Ring.Rmax) {
+				if (Prob == 0) break;
+				else if (Radius > Ring.Rmin and Radius < Ring.Rmax) {
 					Prob *= Distr(Radius + 0.5 * Base.Chunk) - Distr(Radius - 0.5 * Base.Chunk);
 					for (double Index = 1; Index < Ring.Count; Index++) {
 						double Angle = 2 * pi * Index / Ring.Count + atan2(PosZ, PosX);
@@ -105,15 +105,15 @@ protected:
 							double Scale = (PosX + Base.PosMid) * (Line.PosX + Base.PosMid) + (PosZ + Base.PosMid) * (Line.PosZ + Base.PosMid);
 							double Coeff = (Line.PosX + Base.PosMid) * cos(Angle) + (Line.PosZ + Base.PosMid) * sin(Angle);
 							double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
-							if (Delta > 0) Cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
+							if (Delta > 0) Interval.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 						}
-						ranges::sort(Cache, ranges::less());
 						double Pmult = 1, Rmax = -numeric_limits<double>::infinity();
-						for (const auto& Pair : Cache) {
+						ranges::sort(Interval, ranges::less());
+						for (const auto& Pair : Interval) {
 							Pmult -= Distr(fmax(Rmax, Pair.second)) - Distr(fmax(Rmax, Pair.first));
 							Rmax = fmax(Rmax, Pair.second);
 						}
-						Prob *= Pmult, Cache.clear();
+						Prob *= Pmult, Interval.clear();
 					}
 				}
 				else if (Dmax > Ring.Rmin and Dmin < Ring.Rmax) {
@@ -126,15 +126,15 @@ protected:
 								double Scale = (PosX + Base.PosMid) * (Line.PosX + Base.PosMid) + (PosZ + Base.PosMid) * (Line.PosZ + Base.PosMid);
 								double Coeff = (Line.PosX + Base.PosMid) * cos(Angle) + (Line.PosZ + Base.PosMid) * sin(Angle);
 								double Delta = Radius * Radius + Coeff * Coeff - 2 * Scale;
-								if (Delta > 0) Cache.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
+								if (Delta > 0) Interval.emplace_back(Coeff - sqrt(Delta), Coeff + sqrt(Delta));
 							}
-							ranges::sort(Cache, ranges::less());
 							double Pmult = 1, Rmax = -numeric_limits<double>::infinity();
-							for (const auto& Pair : Cache) {
+							ranges::sort(Interval, ranges::less());
+							for (const auto& Pair : Interval) {
 								Pmult -= Distr(fmax(Rmax, Pair.second)) - Distr(fmax(Rmax, Pair.first));
 								Rmax = fmax(Rmax, Pair.second);
 							}
-							Prob *= Pmult, Cache.clear();
+							Prob *= Pmult, Interval.clear();
 						}
 						Psum += Prob;
 					}
@@ -160,9 +160,9 @@ protected:
 			Data.emplace_back(Target.pos.x, Target.pos.z, 1);
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
-			vector<size_t> Step; vector<vector<pair<double, double>>> Cache;
+			vector<vector<pair<double, double>>> Dataset; vector<size_t> Step;
 			for (const auto& Line : Source.Data) {
-				Step.emplace_back(), Cache.emplace_back();
+				Dataset.emplace_back(), Step.emplace_back();
 				double Radius = hypot(Line.PosX + Base.PosMid, Line.PosZ + Base.PosMid);
 				double Dmin = +numeric_limits<double>::infinity();
 				double Dmax = +numeric_limits<double>::infinity();
@@ -199,37 +199,38 @@ protected:
 					Zmin = Base.Chunk * (round((Zmin + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					Zmax = Base.Chunk * (round((Zmax + Base.PosMid) / Base.Chunk) + 0.5) - Base.PosMid;
 					for (double PosZ = Zmin; PosZ < Zmax; PosZ += Base.Chunk)
-						Cache.back().emplace_back(PosX, PosZ);
+						Dataset.back().emplace_back(PosX, PosZ);
 				}
 			}
-			double Xsum1 = 0, Xsum2 = 0, Zsum1 = 0, Zsum2 = 0;
-			if (not Cache.empty()) {
-				Step.emplace_back(), Cache.emplace_back();
-				double Psum = 0; LOOP: size_t IDmin = 0, IDmax = 0;
-				for (size_t Index = 0; Index + 1 < Cache.size(); Index++) {
-					if (Step[Index] == Cache[Index].size()) goto EXIT;
-					else if (Cache[Index][Step[Index]] < Cache[IDmin][Step[IDmin]]) Step[Index]++, IDmin = Index;
-					else if (Cache[Index][Step[Index]] < Cache[IDmax][Step[IDmax]]) Step[Index]++;
-					else if (Cache[Index][Step[Index]] > Cache[IDmax][Step[IDmax]]) Step[IDmax]++, IDmax = Index;
+			double Xsum1 = 0, Xsum2 = 0, Zsum1 = 0, Zsum2 = 0, Psum = 0;
+			if (not Dataset.empty()) LOOP: {
+				size_t IDmin = 0, IDmax = 0;
+				for (size_t Index = 0; Index < Dataset.size(); Index++) {
+					if (Step[Index] == Dataset[Index].size()) goto EXIT;
+					else if (Dataset[Index][Step[Index]] < Dataset[IDmin][Step[IDmin]]) Step[Index]++, IDmin = Index;
+					else if (Dataset[Index][Step[Index]] < Dataset[IDmax][Step[IDmax]]) Step[Index]++;
+					else if (Dataset[Index][Step[Index]] > Dataset[IDmax][Step[IDmax]]) Step[IDmax]++, IDmax = Index;
 				}
 				if (IDmin == IDmax) {
-					Cache.back().emplace_back(Cache[0][Step[0]]);
-					Psum += Source.solve(Base, Cache[0][Step[0]].first, Cache[0][Step[0]].second);
-					for (size_t Index = 0; Index + 1 < Cache.size(); Step[Index++]++);
+					double PosX = Base.Chunk * floor(Dataset[0][Step[0]].first / Base.Chunk) + Base.PosLoc;
+					double PosZ = Base.Chunk * floor(Dataset[0][Step[0]].second / Base.Chunk) + Base.PosLoc;
+					double Prob = Source.solve(Base, PosX, PosZ);
+					for (size_t Index = 0; Index < Dataset.size(); Step[Index++]++);
+					if (Prob > 0) {
+						Xsum1 += PosX * Prob, Xsum2 += PosX * PosX * Prob;
+						Zsum1 += PosX * Prob, Zsum2 += PosX * PosX * Prob;
+						Psum += Prob, Data.emplace_back(PosX, PosZ, Prob);
+					}
 				}
-				goto LOOP; EXIT:
-				for (const auto& Pair : Cache.back()) {
-					double PosX = Base.Chunk * floor(Pair.first / Base.Chunk) + Base.PosLoc;
-					double PosZ = Base.Chunk * floor(Pair.second / Base.Chunk) + Base.PosLoc;
-					double Prob = Source.solve(Base, Pair.first, Pair.second) / Psum;
-					Xsum1 += PosX * Prob, Xsum2 += PosX * PosX * Prob;
-					Zsum1 += PosZ * Prob, Zsum2 += PosZ * PosZ * Prob;
-					if (Prob > 0) Data.emplace_back(PosX, PosZ, Prob);
-				}
+				goto LOOP;
+			} EXIT:
+			if (Psum > 0) {
+				Xsum1 /= Psum, Xsum2 /= Psum, Zsum1 /= Psum, Zsum2 /= Psum;
+				for (auto& Point : Data) Point.Prob /= Psum;
+				ranges::sort(Data, ranges::greater(), &Point::Prob);
 			}
 			Xmean = Xsum1, Xsigma = sqrt(fdim(Xsum2, Xsum1 * Xsum1));
 			Zmean = Zsum1, Zsigma = sqrt(fdim(Zsum2, Zsum1 * Zsum1));
-			ranges::sort(Data, ranges::greater(), &Point::Prob);
 		}
 	};
 
@@ -242,7 +243,7 @@ private:
 public:
 
 	string operator()(const string& Input) {
-		static regex Pattern[] = {
+		static const regex Pattern[] = {
 			regex("CHECK", regex::icase),
 			regex("CLEAR", regex::icase),
 			regex("VER (\\S+)", regex::icase),
@@ -270,7 +271,7 @@ public:
 			for (const auto& Line : Source.Data)
 				Output += format("#{0}: ({1:.1f}, {2:.1f}, {3:.2f} ± {4:.1g})\n", ++Index, Line.PosX, Line.PosZ, 180/pi * Line.Yaw - 90, 180/pi * Line.Range);
 		}
-		else if (Seed != 0) {
+		else if (not Seed == 0) {
 			const auto& Target = Stronghold(Base, Seed).Data.back();
 			double Angle = uniform_real_distribution(-pi, pi)(RNG);
 			double Error = Source.calib(Base, Target.PosX, Target.PosZ);
@@ -278,7 +279,7 @@ public:
 			Output += format("/tp {0:.2f} 240.00 {1:.2f}\n", Target.PosX + 60 * cos(Angle), Target.PosZ + 60 * sin(Angle));
 		}
 		else if (not Source.Data.empty()) {
-			Stronghold Target(Base, Source);
+			const Stronghold Target(Base, Source);
 			for (const auto& Point : Target.Data)
 				Output += format("{0:>6.3f}% → ({1:.0f}, {2:.0f})\n", 100 * Point.Prob, Point.PosX, Point.PosZ);
 			Output += format("({0:.0f} ± {1:.0f}, {2:.0f} ± {3:.0f})\n", Target.Xmean, Target.Xsigma, Target.Zmean, Target.Zsigma);

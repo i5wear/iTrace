@@ -69,10 +69,12 @@ protected:
 			double Error = 0, Esum1 = 0, Esum2 = 0, Rsum2 = 0;
 			for (const auto& Line : Data) {
 				Error = remainder(Line.Yaw - atan2(PosZ - Line.PosZ, PosX - Line.PosX), 2 * pi);
-				Esum1 += Error / Data.size(), Esum2 += Error * Error / (Data.size() - 1);
-				Rsum2 += Line.Range * Line.Range / (3 * Data.size());
+				Esum1 += Error, Esum2 += Error * Error, Rsum2 += Line.Range * Line.Range;
 			}
-			Emean = Esum1, Esigma = sqrt(fdim(Esum2, Esum1 * Esum1 + Rsum2));
+			if (not Data.empty()) {
+				Esum1 /= Data.size(), Esum2 /= Data.size() - 1, Rsum2 /= Data.size();
+				Emean = Esum1, Esigma = sqrt(fdim(Esum2, Esum1 * Esum1 + Rsum2 / 3));
+			}
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
@@ -88,7 +90,7 @@ protected:
 				double Error = remainder(Line.Yaw - atan2(PosZ - Line.PosZ, PosX - Line.PosX), 2 * pi);
 				double Emin = (Error - Emean - Line.Range) / (sqrt2 * Esigma);
 				double Emax = (Error - Emean + Line.Range) / (sqrt2 * Esigma);
-				Prob *= Esigma > 0 ? Esigma * (erf(Emax) - erf(Emin)) / Line.Range : Emin < 0 and Emax > 0;
+				Prob *= Esigma == 0 ? Emin < 0 and Emax > 0 : Esigma * (erf(Emax) - erf(Emin)) / Line.Range;
 				Dmin = fmin(Dmin, hypot(Line.PosX + Base.PosMid, Line.PosZ + Base.PosMid) - hypot(PosX - Line.PosX, PosZ - Line.PosZ));
 				Dmax = fmax(Dmax, hypot(Line.PosX + Base.PosMid, Line.PosZ + Base.PosMid) + hypot(PosX - Line.PosX, PosZ - Line.PosZ));
 			}

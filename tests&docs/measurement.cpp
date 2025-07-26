@@ -7,7 +7,6 @@ using namespace numbers;
 // Next, a random position and measurement error are picked.
 // Then, the nearest stronghold is found and error is applied.
 // Finally, the command for iTrace is generated to execute.
-// I've done massive tests by this, which is impossible by myself.
 int main() {
 	constexpr long long Base = MC_1_16, Seed = -1236314517;
 	constexpr double Emean = 0, Esigma = 0.004, Count = 32;

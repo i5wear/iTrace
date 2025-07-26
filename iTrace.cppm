@@ -70,10 +70,9 @@ protected:
 			for (const auto& Line : Data) {
 				Error = remainder(Line.Yaw - atan2(PosZ - Line.PosZ, PosX - Line.PosX), 2 * pi);
 				Esum1 += Error / Data.size(), Esum2 += Error * Error / (Data.size() - 1);
-				Rsum2 += Line.Range * Line.Range / Data.size();
+				Rsum2 += Line.Range * Line.Range / (3 * Data.size());
 			}
-			Esum2 = fdim(Esum2, Esum1 * Esum1 * Data.size() / (Data.size() - 1));
-			Emean = Esum1, Esigma = sqrt(fdim(Esum2, Rsum2 / 3));
+			Emean = Esum1, Esigma = sqrt(fdim(Esum2, Esum1 * Esum1 + Rsum2));
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
@@ -212,7 +211,7 @@ protected:
 					else if (Dataset[Index][Step[Index]] > Dataset[IDmax][Step[IDmax]]) Step[IDmax]++, IDmax = Index;
 				}
 				if (IDmin == IDmax) {
-					double PosX = Base.Chunk * floor(Dataset[0][Step[0]].first / Base.Chunk) + Base.PosLoc;
+					double PosX = Base.Chunk * floor(Dataset[0][Step[0]]. first / Base.Chunk) + Base.PosLoc;
 					double PosZ = Base.Chunk * floor(Dataset[0][Step[0]].second / Base.Chunk) + Base.PosLoc;
 					double Prob = Source.solve(Base, PosX, PosZ);
 					for (size_t Index = 0; Index < Dataset.size(); Step[Index++]++);
@@ -226,7 +225,7 @@ protected:
 			} EXIT:
 			if (Psum > 0) {
 				Xsum1 /= Psum, Xsum2 /= Psum, Zsum1 /= Psum, Zsum2 /= Psum;
-				for (auto& Point : Data) Point.Prob /= Psum;
+				for (volatile auto& Point : Data) Point.Prob /= Psum;
 				ranges::sort(Data, ranges::greater(), &Point::Prob);
 			}
 			Xmean = Xsum1, Xsigma = sqrt(fdim(Xsum2, Xsum1 * Xsum1));
@@ -250,7 +249,7 @@ public:
 			regex("CAL (\\S+)", regex::icase),
 			regex("ERR (\\S+) (\\S+)", regex::icase),
 			regex("ADD (\\S+) (\\S+) (\\S+)", regex::icase),
-			regex("/execute in (?:minecraft:)?overworld run tp @s (\\S+) (\\S+) (\\S+) (\\S+) (\\S+)", regex::icase)
+			regex("/execute in minecraft:overworld run tp @s (\\S+) (\\S+) (\\S+) (\\S+) (\\S+)", regex::icase)
 		};
 		thread_local default_random_engine RNG;
 		size_t Index; smatch Value; string Output;

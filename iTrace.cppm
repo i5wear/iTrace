@@ -220,7 +220,7 @@ protected:
 					for (size_t Index = 0; Index < Dataset.size(); Step[Index++]++);
 					if (Prob > 0) {
 						Xsum1 += PosX * Prob, Xsum2 += PosX * PosX * Prob;
-						Zsum1 += PosX * Prob, Zsum2 += PosX * PosX * Prob;
+						Zsum1 += PosZ * Prob, Zsum2 += PosZ * PosZ * Prob;
 						Psum += Prob, Data.emplace_back(PosX, PosZ, Prob);
 					}
 				}

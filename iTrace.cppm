@@ -64,9 +64,9 @@ protected:
 		struct Line { double PosX, PosZ, Yaw, Range; };
 		mutable double Emean, Esigma; vector<Line> Data;
 		double calib(const Constants& Base, double PosX, double PosZ) const {
+			double Error = 0, Esum1 = 0, Esum2 = 0, Rsum2 = 0;
 			PosX = Base.Chunk * (floor(PosX / Base.Chunk) + 0.5) - Base.PosMid;
 			PosZ = Base.Chunk * (floor(PosZ / Base.Chunk) + 0.5) - Base.PosMid;
-			double Error = 0, Esum1 = 0, Esum2 = 0, Rsum2 = 0;
 			for (const auto& Line : Data) {
 				Error = remainder(Line.Yaw - atan2(PosZ - Line.PosZ, PosX - Line.PosX), 2 * pi);
 				Esum1 += Error, Esum2 += Error * Error, Rsum2 += Line.Range * Line.Range;
@@ -78,6 +78,7 @@ protected:
 			return Error;
 		}
 		double solve(const Constants& Base, double PosX, double PosZ) const {
+			thread_local vector<pair<double, double>> Interval;
 			PosX = Base.Chunk * (floor(PosX / Base.Chunk) + 0.5) - Base.PosMid;
 			PosZ = Base.Chunk * (floor(PosZ / Base.Chunk) + 0.5) - Base.PosMid;
 			double Prob = 0, Radius = hypot(PosX + Base.PosMid, PosZ + Base.PosMid);
@@ -94,7 +95,6 @@ protected:
 				Dmin = fmin(Dmin, hypot(Line.PosX + Base.PosMid, Line.PosZ + Base.PosMid) - hypot(PosX - Line.PosX, PosZ - Line.PosZ));
 				Dmax = fmax(Dmax, hypot(Line.PosX + Base.PosMid, Line.PosZ + Base.PosMid) + hypot(PosX - Line.PosX, PosZ - Line.PosZ));
 			}
-			vector<pair<double, double>> Interval;
 			for (const auto& Ring : Base.Data) {
 				auto Distr = [&Ring](double Radius) { return Radius < Ring.Rmax ? Radius < Ring.Rmin ? 0 : Ring.Distr[size_t(Radius - Ring.Rmin)] : 1; };
 				if (Prob == 0) break;
@@ -161,9 +161,10 @@ protected:
 			Data.emplace_back(Target.pos.x, Target.pos.z, 1);
 		}
 		Stronghold(const Constants& Base, const Endereyes& Source) {
-			vector<vector<pair<double, double>>> Dataset; vector<size_t> Step;
+			thread_local vector<size_t> Step;
+			thread_local vector<vector<pair<double, double>>> Dataset;
 			for (const auto& Line : Source.Data) {
-				Dataset.emplace_back(), Step.emplace_back();
+				Step.emplace_back(), Dataset.emplace_back();
 				double Radius = hypot(Line.PosX + Base.PosMid, Line.PosZ + Base.PosMid);
 				double Dmin = +numeric_limits<double>::infinity();
 				double Dmax = +numeric_limits<double>::infinity();
@@ -230,6 +231,7 @@ protected:
 				for (volatile auto& Point : Data) Point.Prob /= Psum;
 				ranges::sort(Data, ranges::greater(), &Point::Prob);
 			}
+			Step.clear(), Dataset.clear();
 			Xmean = Xsum1, Xsigma = sqrt(fdim(Xsum2, Xsum1 * Xsum1));
 			Zmean = Zsum1, Zsigma = sqrt(fdim(Zsum2, Zsum1 * Zsum1));
 		}
@@ -265,7 +267,7 @@ public:
 		case 4: Source.Emean = pi/180 * stod(Value[1]), Source.Esigma = pi/180 * stod(Value[2]); break;
 		case 5: Source.Data.emplace_back(stod(Value[1]), stod(Value[2]), pi/180 * (stod(Value[3]) + 90), pi/3600); break;
 		case 6: Source.Data.emplace_back(stod(Value[1]), stod(Value[3]), pi/180 * (stod(Value[4]) + 90), pi/36000); break;
-		default: throw invalid_argument("invalid iTrace input");
+		default: throw exception("invalid iTrace input");
 		}
 		if (Index == 0) {
 			Output += format("VER: {0}  SEED: {1}  ERR: {2:.4f} ± {3:.4f}\n", mc2str(Base), Seed, 180/pi * Source.Emean, 180/pi * Source.Esigma);

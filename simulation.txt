@@ -1,0 +1,75 @@
+Minecraft: Version = 1.16.5, Seed = -1236314517
+Distribution: Mean = 0.0000, Standard Deviation = 0.0040
+Ninjabrain Bot Equivalent: Standard Deviation = 0.0050
+
+Measurement Examples:
+/execute in minecraft:overworld run tp @s 13975.00 240.00 11656.00 -157.74 -32.00
+/execute in minecraft:overworld run tp @s -1740.00 240.00 -21428.00 -28.01 -32.00
+/execute in minecraft:overworld run tp @s -20497.00 240.00 19841.00 -178.30 -32.00
+/execute in minecraft:overworld run tp @s 16214.00 240.00 -19067.00 57.37 -32.00
+/execute in minecraft:overworld run tp @s -17644.00 240.00 -3189.00 -12.31 -32.00
+/execute in minecraft:overworld run tp @s 623.00 240.00 -13619.00 -87.81 -32.00
+/execute in minecraft:overworld run tp @s 7968.00 240.00 24862.00 115.00 -32.00
+/execute in minecraft:overworld run tp @s 2476.00 240.00 -15794.00 -173.70 -32.00
+/execute in minecraft:overworld run tp @s -8338.00 240.00 -3767.00 -59.61 -32.00
+/execute in minecraft:overworld run tp @s -2349.00 240.00 958.00 -144.83 -32.00
+/execute in minecraft:overworld run tp @s 18517.00 240.00 22134.00 149.12 -32.00
+/execute in minecraft:overworld run tp @s -9381.00 240.00 23237.00 164.10 -32.00
+/execute in minecraft:overworld run tp @s 7601.00 240.00 7522.00 -68.70 -32.00
+/execute in minecraft:overworld run tp @s 23315.00 240.00 21143.00 123.58 -32.00
+/execute in minecraft:overworld run tp @s 18067.00 240.00 10535.00 -153.24 -32.00
+/execute in minecraft:overworld run tp @s 2569.00 240.00 7014.00 -94.60 -32.00
+/execute in minecraft:overworld run tp @s 18225.00 240.00 -2328.00 33.42 -32.00
+/execute in minecraft:overworld run tp @s 7703.00 240.00 10577.00 -20.65 -32.00
+/execute in minecraft:overworld run tp @s 8407.00 240.00 6676.00 9.10 -32.00
+/execute in minecraft:overworld run tp @s -20158.00 240.00 -10974.00 -43.48 -32.00
+/execute in minecraft:overworld run tp @s -19646.00 240.00 -23553.00 -14.75 -32.00
+/execute in minecraft:overworld run tp @s 13861.00 240.00 -22249.00 75.67 -32.00
+/execute in minecraft:overworld run tp @s -12300.00 240.00 12157.00 173.76 -32.00
+/execute in minecraft:overworld run tp @s -14907.00 240.00 -9105.00 -143.75 -32.00
+/execute in minecraft:overworld run tp @s 10484.00 240.00 4141.00 -141.34 -32.00
+/execute in minecraft:overworld run tp @s 3332.00 240.00 -24115.00 16.19 -32.00
+/execute in minecraft:overworld run tp @s -20400.00 240.00 5849.00 -156.19 -32.00
+/execute in minecraft:overworld run tp @s -17161.00 240.00 -8396.00 120.18 -32.00
+/execute in minecraft:overworld run tp @s -21244.00 240.00 -5132.00 -124.86 -32.00
+/execute in minecraft:overworld run tp @s 7585.00 240.00 15483.00 -94.29 -32.00
+/execute in minecraft:overworld run tp @s 9369.00 240.00 -23657.00 5.93 -32.00
+/execute in minecraft:overworld run tp @s 19947.00 240.00 -12850.00 -25.33 -32.00
+
+Calibration Result:
+iTrace: Mean = -0.0003, Standard Deviation = 0.0039
+Ninjabrain Bot: Standard Deviation = 0.0048
+
+Calibration Examples:
+/execute in minecraft:overworld run tp @s 730.35 240.00 -1328.34 177.59 -32.00
+/execute in minecraft:overworld run tp @s 773.10 240.00 -1353.52 124.05 -32.00
+/execute in minecraft:overworld run tp @s 671.87 240.00 -1358.29 -114.61 -32.00
+/execute in minecraft:overworld run tp @s 669.94 240.00 -1414.04 -62.64 -32.00
+/execute in minecraft:overworld run tp @s 697.18 240.00 -1441.67 -28.12 -32.00
+/execute in minecraft:overworld run tp @s 737.56 240.00 -1329.55 170.03 -32.00
+/execute in minecraft:overworld run tp @s 676.18 240.00 -1351.77 -121.88 -32.00
+/execute in minecraft:overworld run tp @s 664.41 240.00 -1395.00 -80.18 -32.00
+/execute in minecraft:overworld run tp @s 687.99 240.00 -1435.99 -37.58 -32.00
+/execute in minecraft:overworld run tp @s 710.94 240.00 -1329.44 -162.64 -32.00
+/execute in minecraft:overworld run tp @s 707.42 240.00 -1445.66 -18.46 -32.00
+/execute in minecraft:overworld run tp @s 679.92 240.00 -1428.71 -47.08 -32.00
+/execute in minecraft:overworld run tp @s 689.03 240.00 -1436.76 -36.45 -32.00
+/execute in minecraft:overworld run tp @s 690.68 240.00 -1338.10 -140.88 -32.00
+/execute in minecraft:overworld run tp @s 779.25 240.00 -1411.40 61.87 -32.00
+/execute in minecraft:overworld run tp @s 783.10 240.00 -1377.64 96.58 -32.00
+/execute in minecraft:overworld run tp @s 698.44 240.00 -1442.28 -26.89 -32.00
+/execute in minecraft:overworld run tp @s 715.59 240.00 -1447.41 -11.08 -32.00
+/execute in minecraft:overworld run tp @s 707.31 240.00 -1330.37 -158.91 -32.00
+/execute in minecraft:overworld run tp @s 775.79 240.00 -1418.30 54.33 -32.00
+/execute in minecraft:overworld run tp @s 664.01 240.00 -1386.95 -87.37 -32.00
+/execute in minecraft:overworld run tp @s 755.43 240.00 -1336.89 149.79 -32.00
+/execute in minecraft:overworld run tp @s 669.73 240.00 -1362.40 -110.34 -32.00
+/execute in minecraft:overworld run tp @s 699.87 240.00 -1442.93 -25.51 -32.00
+/execute in minecraft:overworld run tp @s 693.66 240.00 -1439.76 -31.63 -32.00
+/execute in minecraft:overworld run tp @s 738.02 240.00 -1446.34 9.14 -32.00
+/execute in minecraft:overworld run tp @s 777.40 240.00 -1415.36 57.59 -32.00
+/execute in minecraft:overworld run tp @s 728.08 240.00 -1447.86 0.07 -32.00
+/execute in minecraft:overworld run tp @s 681.71 240.00 -1430.56 -44.83 -32.00
+/execute in minecraft:overworld run tp @s 783.57 240.00 -1380.80 93.29 -32.00
+/execute in minecraft:overworld run tp @s 685.96 240.00 -1434.40 -39.83 -32.00
+/execute in minecraft:overworld run tp @s 671.99 240.00 -1417.92 -58.80 -32.00

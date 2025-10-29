@@ -32,4 +32,4 @@ Do `CLEAR` to stop calibration.
 
 F3+C grants better accuracy than `ADD`.
 
-Boat throw is not planned to support.
+Enter with nothing to exit program.

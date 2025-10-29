@@ -7,7 +7,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{9b32ef1a-70b3-40ee-8889-41b85b1a9717}</ProjectGuid>
     <RootNamespace>cubiomes</RootNamespace>

@@ -7,7 +7,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{b429646a-f12e-44b2-85b9-031983083b5f}</ProjectGuid>
     <RootNamespace>iTrace</RootNamespace>

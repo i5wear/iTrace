@@ -18,7 +18,7 @@ Do F3+C and paste, or do the commands to use:
 
 `VER 1.<N> ` - Set the MC version with given *N*.
 
-`CAL <Seed>` - Start calibration with given *Seed*.
+`CAL <Seed>` - Start calibration with given seed.
 
 `ERR <Mean> <Sigma>` - Set the error distribution.
 

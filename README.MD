@@ -1,35 +1,33 @@
 # iTrace
 
-iTrace is a simple but powerful stronghold calculator.
+A simple but powerful stronghold calculator.
 
-Inspired by Ninjabrain Bot, with some improvements.
+Inspired by Ninjabrain Bot, with improvements.
 
-Powered by Cubitect/Cubiomes, under MIT License.
+Powered by Cubiomes, under the MIT License.
 
 ## To Use
 
-Basically, it just works like how Ninjabrain Bot does.
+Basically, it works like how Ninjabrain Bot does.
 
-However, there's only a simple command user interface.
-
-Do F3+C and paste, or do the following commands to use:
+Do F3+C and paste, or do the commands to use:
 
 `CHECK` - Check all the data input.
 
 `CLEAR` - Clear all the data input.
 
-`VER 1.<N> ` - Set the MC version with the given number.
+`VER 1.<N> ` - Set the MC version with given number.
 
-`CAL <Seed>` - Start calibration with the given world seed.
+`CAL <Seed>` - Start calibration with given seed.
 
-`ERR <Mean> <Sigma>` - Set the eye error distribution.
+`ERR <Mean> <Sigma>` - Set the error distribution.
 
-`ADD <X> <Z> <Yaw> ` - Add a less accurate eye of ender.
+`ADD <X> <Z> <Yaw> ` - Add a new eye measurement.
 
 ## Notes
 
-Do `CLEAR` to stop calibration.
+Do `CLEAR` or `CAL 0` to stop calibration.
 
-F3+C grants better accuracy than `ADD`.
+F3+C should be used in favor of `ADD`.
 
 Enter with nothing to exit program.

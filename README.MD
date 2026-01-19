@@ -16,13 +16,13 @@ Do F3+C and paste, or do the commands to use:
 
 `CLEAR` - Clear all the data input.
 
-`VER 1.<N> ` - Set the MC version with given number.
+`VER 1.<N> ` - Set the MC version with given *N*.
 
-`CAL <Seed>` - Start calibration with given seed.
+`CAL <Seed>` - Start calibration with given *Seed*.
 
 `ERR <Mean> <Sigma>` - Set the error distribution.
 
-`ADD <X> <Z> <Yaw> ` - Add a new eye measurement.
+`ADD <X> <Z> <Yaw> ` - Add an eye measurement.
 
 ## Notes
 

@@ -2,7 +2,7 @@ import iTrace;
 using namespace std;
 using namespace numbers;
 
-/* Release 1 - iTrace Console User Interface */
+/* Main 1 - iTrace Console User Interface */
 int main() {
     iTrace Instance; string Input;
     ofstream save("history.log", ios::app);

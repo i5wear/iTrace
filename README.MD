@@ -6,7 +6,7 @@ Inspired by Ninjabrain Bot, with improvements.
 
 Powered by Cubiomes, under the MIT License.
 
-## To Use
+## Guide
 
 Basically, it works like how Ninjabrain Bot does.
 
